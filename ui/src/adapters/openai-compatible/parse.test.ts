@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseOpenAICompatibleStdoutLine } from "./parse-stdout";
-import { buildOpenAICompatibleConfig } from "./build-config";
+import { parseOpenAICompatibleStdoutLine, buildOpenAICompatibleConfig } from "@paperclipai/adapter-openai-compatible/ui";
 
 const ts = "2026-08-07T00:00:00.000Z";
 

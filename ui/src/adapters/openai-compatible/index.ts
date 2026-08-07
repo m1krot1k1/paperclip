@@ -1,7 +1,7 @@
 import type { UIAdapterModule } from "../types";
-import { parseOpenAICompatibleStdoutLine } from "./parse-stdout";
+import { parseOpenAICompatibleStdoutLine } from "@paperclipai/adapter-openai-compatible/ui";
 import { OpenAICompatibleConfigFields } from "./config-fields";
-import { buildOpenAICompatibleConfig } from "./build-config";
+import { buildOpenAICompatibleConfig } from "@paperclipai/adapter-openai-compatible/ui";
 
 export const openAICompatibleUIAdapter: UIAdapterModule = {
   type: "openai_compatible",
