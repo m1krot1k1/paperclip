@@ -400,7 +400,7 @@ bootstrap_cli_from_fork() {
   boot_dir="$TEMP_DIR/bootstrap"
   mkdir -p "$boot_dir"
 
-  log "Downloading $repo@$ref source from GitHub"
+  log "Downloading $repo@$ref source from GitHub" >&2
   curl --proto '=https' --tlsv1.2 --fail --silent --show-error --location \
     "https://codeload.github.com/$repo/tar.gz/$ref" -o "$boot_dir/source.tar.gz"
   [ -s "$boot_dir/source.tar.gz" ] || fail "failed to download $repo@$ref"
@@ -412,10 +412,10 @@ bootstrap_cli_from_fork() {
   cli_dir="$base_dir/cli"
   [ -f "$cli_dir/package.json" ] || fail "downloaded archive does not look like a Paperclip checkout (missing cli/package.json)"
 
-  log "Installing dependencies and building the Paperclip CLI from $repo@$ref"
+  log "Installing dependencies and building the Paperclip CLI from $repo@$ref" >&2
   ( cd "$base_dir" \
       && corepack pnpm install --frozen-lockfile \
-      && bash scripts/build-npm.sh --skip-checks --skip-typecheck ) \
+      && bash scripts/build-npm.sh --skip-checks --skip-typecheck ) >&2 \
     || fail "failed to build the Paperclip CLI from $repo@$ref"
 
   # The bundled dist/index.js declares external runtime dependencies (commander,
@@ -429,7 +429,7 @@ bootstrap_cli_from_fork() {
   local cli_install_dir="$boot_dir/cli-install"
   mkdir -p "$cli_install_dir"
   ( cd "$cli_install_dir" \
-      && npm install --no-fund --no-audit --omit=optional "$cli_dir/$tarball" ) \
+      && npm install --no-fund --no-audit --omit=optional "$cli_dir/$tarball" ) >&2 \
     || fail "failed to install the Paperclip CLI from $repo@$ref"
 
   cli_entry="$cli_install_dir/node_modules/paperclipai/dist/index.js"
