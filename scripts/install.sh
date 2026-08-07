@@ -3,17 +3,17 @@ set -euo pipefail
 
 MIN_NODE_MAJOR=20
 DEFAULT_NODE_MAJOR=22
-PAPERCLIP_PACKAGE="paperclipai"
 PUBLIC_NPM_REGISTRY="https://registry.npmjs.org"
-# Source repository this installer is published for. Git-ref installs build and
-# run code from this fork, so these defaults route to the fork's own branch.
-DEFAULT_REPO="m1krot1k1/paperclip"
-DEFAULT_REF="main"
 HOMEBREW_INSTALL_COMMIT="99e13e96cbbdc1ac1ac09c0a40b450bf219ef3aa"
 HOMEBREW_INSTALL_SHA256="99287f194a8b3c9e6b0203a11a5fa54518be57209343e6bb954dec4635796d9d"
 NODESOURCE_DISTRIBUTIONS_COMMIT="9b431d8ae0f10df272598585855c6eca6c0e1bd2"
 NODESOURCE_DEB_SHA256="575583bbac2fccc0b5edd0dbc03e222d9f9dc8d724da996d22754d6411104fd1"
 NODESOURCE_RPM_SHA256="b0ed2b9b66002e7ee802e8777cf3a92b25f1ecc0129812dc6f59a43a536810cc"
+
+# Source repository this installer is published for. Git-ref installs build and
+# run code from this fork, so these defaults route to the fork's own branch.
+DEFAULT_REPO="m1krot1k1/paperclip"
+DEFAULT_REF="main"
 
 CANARY=0
 VERSION=""
@@ -26,6 +26,7 @@ DRY_RUN=0
 VERBOSE=0
 TEMP_DIR=""
 PIPED_INSTALL=0
+INSTALL_SOURCE="git"
 
 if [ -z "${BASH_SOURCE[0]:-}" ] || [ ! -f "${BASH_SOURCE[0]}" ]; then
   PIPED_INSTALL=1
@@ -41,8 +42,9 @@ Usage:
   curl -fsSL https://raw.githubusercontent.com/m1krot1k1/paperclip/main/scripts/install.sh | bash -s -- --no-prompt [options]
 
 Options:
-  --canary                 Install the canary channel
-  --version <version>      Install an exact published version
+  --maybe-canary           Reserved (kept for compatibility); use --version
+  --canary                 Install the npm canary channel
+  --version <version>      Install an exact published npm version
   --no-onboard             Do not start onboarding after installation
   --no-prompt              Run non-interactively
   --install-service        Install the per-user Paperclip service
@@ -53,8 +55,9 @@ Options:
 Every option also has a PAPERCLIP_INSTALL_* environment equivalent, for example
 PAPERCLIP_INSTALL_VERSION=2026.722.0 and PAPERCLIP_INSTALL_NO_PROMPT=1.
 
-To install from a git branch, tag, or commit, use the Paperclip CLI directly:
-npx paperclipai install --ref <ref>
+The default source is a git build of this repository's own fork
+(m1krot1k1/paperclip@main). Pass --version to install a published npm package
+instead.
 EOF
 }
 
@@ -115,16 +118,6 @@ while [ "$#" -gt 0 ]; do
       VERSION="$2"
       shift 2
       ;;
-    --ref)
-      require_value "$1" "${2:-}"
-      REF="$2"
-      shift 2
-      ;;
-    --repo)
-      require_value "$1" "${2:-}"
-      REPO="$2"
-      shift 2
-      ;;
     --no-onboard)
       NO_ONBOARD=1
       shift
@@ -165,20 +158,15 @@ if [ "$CANARY" = "1" ] && [ -n "$VERSION" ]; then
   fail "--canary and --version cannot be used together"
 fi
 
-# Install source. The default is a git-ref install from this fork so users get
-# this repository's own code. An explicit npm request (--canary/--version)
-# switches the source to the published npm package.
-INSTALL_SOURCE="git"
+# Install source. The default is a git build from this fork so users get this
+# repository's own code. An explicit npm request (--canary/--version) switches
+# the source to the published npm package.
 if [ "$CANARY" = "1" ] || [ -n "$VERSION" ]; then
   INSTALL_SOURCE="npm"
-fi
-
-if [ "$INSTALL_SOURCE" = "npm" ]; then
   if [ -n "$REF" ] || [ -n "$REPO" ]; then
     fail "--canary/--version install from npm; --ref/--repo are not supported for npm installs"
   fi
 else
-  # git-ref source: default to this fork's branch unless overridden.
   if [ -z "$REF" ]; then
     REF="$DEFAULT_REF"
   fi
@@ -360,6 +348,17 @@ install_node_linux() {
   fi
 }
 
+ensure_pnpm() {
+  command -v corepack >/dev/null 2>&1 || fail "corepack is required to build Paperclip from source; install Node.js >= $MIN_NODE_MAJOR (which bundles corepack), or run 'npm install -g corepack'"
+  command -v pnpm >/dev/null 2>&1 || command -v corepack >/dev/null 2>&1 || return 1
+  if command -v pnpm >/dev/null 2>&1 && ! command -v corepack >/dev/null 2>&1; then
+    # pnpm present without corepack: fine.
+    return 0
+  fi
+  # Ensure corepack's pnpm shim is available even when pnpm is not on PATH.
+  command -v corepack >/dev/null 2>&1 || return 1
+}
+
 if has_supported_node; then
   log "Using Node.js $(node --version)"
 else
@@ -382,42 +381,109 @@ else
   log "Installed Node.js $(node --version)"
 fi
 
-PACKAGE_SPEC="$PAPERCLIP_PACKAGE@latest"
-if [ "$CANARY" = "1" ]; then
-  PACKAGE_SPEC="$PAPERCLIP_PACKAGE@canary"
-elif [ -n "$VERSION" ]; then
-  PACKAGE_SPEC="$PAPERCLIP_PACKAGE@$VERSION"
-fi
+# ---------------------------------------------------------------------------
+# Bootstrap: build the paperclipai CLI straight from this fork's source archive
+# (no reliance on the independently published `paperclipai` npm package, which
+# does not carry the same `install` command). This mirrors how the Paperclip
+# CLI itself stages a git-ref install, only here it is the first step on a
+# machine with no Paperclip CLI yet.
+# ---------------------------------------------------------------------------
+bootstrap_cli_from_fork() {
+  local repo="$1"
+  local ref="$2"
+  local boot_dir base_dir cli_dir cli_entry
 
-INSTALL_ARGS=(install)
-if [ "$INSTALL_SOURCE" = "git" ]; then
-  INSTALL_ARGS+=(--repo "$REPO")
-  INSTALL_ARGS+=(--ref "$REF")
-else
+  command -v git >/dev/null 2>&1 || fail "git is required to install Paperclip from this repository"
+  ensure_pnpm || fail "corepack (or pnpm) is required to build Paperclip from this repository"
+
+  ensure_temp_dir
+  boot_dir="$TEMP_DIR/bootstrap"
+  mkdir -p "$boot_dir"
+
+  log "Downloading $repo@$ref source from GitHub"
+  curl --proto '=https' --tlsv1.2 --fail --silent --show-error --location \
+    "https://codeload.github.com/$repo/tar.gz/$ref" -o "$boot_dir/source.tar.gz"
+  [ -s "$boot_dir/source.tar.gz" ] || fail "failed to download $repo@$ref"
+
+  base_dir="$boot_dir/source"
+  mkdir -p "$base_dir"
+  tar -xzf "$boot_dir/source.tar.gz" --strip-components=1 -C "$base_dir"
+
+  cli_dir="$base_dir/cli"
+  [ -f "$cli_dir/package.json" ] || fail "downloaded archive does not look like a Paperclip checkout (missing cli/package.json)"
+
+  log "Installing dependencies and building the Paperclip CLI from $repo@$ref"
+  ( cd "$base_dir" \
+      && corepack pnpm install --frozen-lockfile \
+      && bash scripts/build-npm.sh --skip-checks --skip-typecheck ) \
+    || fail "failed to build the Paperclip CLI from $repo@$ref"
+
+  cli_entry="$boot_dir/cli-install/dist/index.js"
+  mkdir -p "$(dirname "$cli_entry")"
+  cp "$cli_dir/dist/index.js" "$cli_entry"
+  chmod +x "$cli_entry"
+  printf '%s' "$cli_entry"
+}
+
+run_built_cli() {
+  local cli_entry="$1"
+  shift
+  node "$cli_entry" "$@"
+}
+
+if [ "$INSTALL_SOURCE" = "npm" ]; then
+  PACKAGE_SPEC="paperclipai@latest"
+  if [ "$CANARY" = "1" ]; then
+    PACKAGE_SPEC="paperclipai@canary"
+  elif [ -n "$VERSION" ]; then
+    PACKAGE_SPEC="paperclipai@$VERSION"
+  fi
+
+  INSTALL_ARGS=(install)
   [ "$CANARY" = "1" ] && INSTALL_ARGS+=(--canary)
   [ -n "$VERSION" ] && INSTALL_ARGS+=(--version "$VERSION")
-fi
-[ "$NO_PROMPT" = "1" ] && INSTALL_ARGS+=(--yes)
-ensure_temp_dir
-NPM_USERCONFIG="$TEMP_DIR/npmrc"
-printf 'registry=%s\n@paperclipai:registry=%s\n' "$PUBLIC_NPM_REGISTRY" "$PUBLIC_NPM_REGISTRY" >"$NPM_USERCONFIG"
-chmod 600 "$NPM_USERCONFIG"
-NPM_ENV=(env "NPM_CONFIG_REGISTRY=$PUBLIC_NPM_REGISTRY" "npm_config_registry=$PUBLIC_NPM_REGISTRY" "NPM_CONFIG_USERCONFIG=$NPM_USERCONFIG" "npm_config_userconfig=$NPM_USERCONFIG")
-INSTALL_COMMAND=("${NPM_ENV[@]}" npx --yes "--registry=$PUBLIC_NPM_REGISTRY" "$PACKAGE_SPEC" "${INSTALL_ARGS[@]}")
+  [ "$NO_PROMPT" = "1" ] && INSTALL_ARGS+=(--yes)
+  ensure_temp_dir
+  NPM_USERCONFIG="$TEMP_DIR/npmrc"
+  printf 'registry=%s\n@paperclipai:registry=%s\n' "$PUBLIC_NPM_REGISTRY" "$PUBLIC_NPM_REGISTRY" >"$NPM_USERCONFIG"
+  chmod 600 "$NPM_USERCONFIG"
+  NPM_ENV=(env "NPM_CONFIG_REGISTRY=$PUBLIC_NPM_REGISTRY" "npm_config_registry=$PUBLIC_NPM_REGISTRY" "NPM_CONFIG_USERCONFIG=$NPM_USERCONFIG" "npm_config_userconfig=$NPM_USERCONFIG")
 
-log "Delegating to the Paperclip CLI"
-if [ "$DRY_RUN" = "1" ]; then
-  print_command "${INSTALL_COMMAND[@]}"
-  exit 0
-fi
+  log "Delegating to the Paperclip CLI"
+  if [ "$DRY_RUN" = "1" ]; then
+    print_command "${NPM_ENV[@]}" npx --yes "--registry=$PUBLIC_NPM_REGISTRY" "$PACKAGE_SPEC" "${INSTALL_ARGS[@]}"
+    exit 0
+  fi
+  print_command "${NPM_ENV[@]}" npx --yes "--registry=$PUBLIC_NPM_REGISTRY" "$PACKAGE_SPEC" "${INSTALL_ARGS[@]}"
+  "${NPM_ENV[@]}" npx --yes "--registry=$PUBLIC_NPM_REGISTRY" "$PACKAGE_SPEC" "${INSTALL_ARGS[@]}"
 
-print_command "${INSTALL_COMMAND[@]}"
-"${INSTALL_COMMAND[@]}"
+  if [ "$INSTALL_SERVICE" = "1" ]; then
+    log "Installing the Paperclip service"
+    print_command "${NPM_ENV[@]}" npx --yes "--registry=$PUBLIC_NPM_REGISTRY" "$PACKAGE_SPEC" service install
+    "${NPM_ENV[@]}" npx --yes "--registry=$PUBLIC_NPM_REGISTRY" "$PACKAGE_SPEC" service install
+  fi
+else
+  # git source: build the CLI from the fork, then install a managed payload
+  # from that same fork and ref.
+  if [ "$DRY_RUN" = "1" ]; then
+    log "Would build the Paperclip CLI from $REPO@$REF, then run:"
+    print_command node "<built-cli>/dist/index.js" install --repo "$REPO" --ref "$REF" --yes
+    exit 0
+  fi
 
-if [ "$INSTALL_SERVICE" = "1" ]; then
-  log "Installing the Paperclip service"
-  print_command "${NPM_ENV[@]}" npx --yes "--registry=$PUBLIC_NPM_REGISTRY" "$PACKAGE_SPEC" service install
-  "${NPM_ENV[@]}" npx --yes "--registry=$PUBLIC_NPM_REGISTRY" "$PACKAGE_SPEC" service install
+  CLI_ENTRY="$(bootstrap_cli_from_fork "$REPO" "$REF")"
+  log "Bootstrapped Paperclip CLI from $REPO@$REF"
+
+  INSTALL_ARGS=(install --repo "$REPO" --ref "$REF")
+  [ "$NO_PROMPT" = "1" ] && INSTALL_ARGS+=(--yes)
+  print_command node "$CLI_ENTRY" "${INSTALL_ARGS[@]}"
+  run_built_cli "$CLI_ENTRY" "${INSTALL_ARGS[@]}"
+
+  if [ "$INSTALL_SERVICE" = "1" ]; then
+    log "Installing the Paperclip service"
+    print_command node "$CLI_ENTRY" service install
+    run_built_cli "$CLI_ENTRY" service install
+  fi
 fi
 
 if [ "$NO_ONBOARD" = "0" ] && [ -t 0 ] && [ -t 1 ]; then

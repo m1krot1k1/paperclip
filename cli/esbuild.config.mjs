@@ -26,6 +26,7 @@ const workspacePaths = [
   "packages/adapters/hermes-gateway",
   "packages/adapters/hermes",
   "packages/adapters/openclaw-gateway",
+  "packages/adapters/openai-compatible",
 ];
 
 // Workspace packages that should NOT be bundled — they'll be published
