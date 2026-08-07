@@ -5,6 +5,10 @@ MIN_NODE_MAJOR=20
 DEFAULT_NODE_MAJOR=22
 PAPERCLIP_PACKAGE="paperclipai"
 PUBLIC_NPM_REGISTRY="https://registry.npmjs.org"
+# Source repository this installer is published for. Git-ref installs build and
+# run code from this fork, so these defaults route to the fork's own branch.
+DEFAULT_REPO="m1krot1k1/paperclip"
+DEFAULT_REF="main"
 HOMEBREW_INSTALL_COMMIT="99e13e96cbbdc1ac1ac09c0a40b450bf219ef3aa"
 HOMEBREW_INSTALL_SHA256="99287f194a8b3c9e6b0203a11a5fa54518be57209343e6bb954dec4635796d9d"
 NODESOURCE_DISTRIBUTIONS_COMMIT="9b431d8ae0f10df272598585855c6eca6c0e1bd2"
@@ -32,9 +36,9 @@ usage() {
 Install Paperclip on macOS, Linux, or WSL2.
 
 Usage:
-  curl -fsSLO https://paperclip.ing/install.sh
+  curl -fsSLO https://raw.githubusercontent.com/m1krot1k1/paperclip/main/scripts/install.sh
   bash install.sh [options]
-  curl -fsSL https://paperclip.ing/install.sh | bash -s -- --no-prompt [options]
+  curl -fsSL https://raw.githubusercontent.com/m1krot1k1/paperclip/main/scripts/install.sh | bash -s -- --no-prompt [options]
 
 Options:
   --canary                 Install the canary channel
@@ -161,8 +165,29 @@ if [ "$CANARY" = "1" ] && [ -n "$VERSION" ]; then
   fail "--canary and --version cannot be used together"
 fi
 
-if [ -n "$REF" ] || [ -n "$REPO" ]; then
-  fail "git-ref installs are not supported by install.sh; run 'npx paperclipai install --ref <ref>' instead"
+# Install source. The default is a git-ref install from this fork so users get
+# this repository's own code. An explicit npm request (--canary/--version)
+# switches the source to the published npm package.
+INSTALL_SOURCE="git"
+if [ "$CANARY" = "1" ] || [ -n "$VERSION" ]; then
+  INSTALL_SOURCE="npm"
+fi
+
+if [ "$INSTALL_SOURCE" = "npm" ]; then
+  if [ -n "$REF" ] || [ -n "$REPO" ]; then
+    fail "--canary/--version install from npm; --ref/--repo are not supported for npm installs"
+  fi
+else
+  # git-ref source: default to this fork's branch unless overridden.
+  if [ -z "$REF" ]; then
+    REF="$DEFAULT_REF"
+  fi
+  if [ -z "$REPO" ]; then
+    REPO="$DEFAULT_REPO"
+  fi
+  if [ -n "$REPO" ] && [ -z "$REF" ]; then
+    fail "--repo requires --ref"
+  fi
 fi
 
 if { [ ! -t 0 ] || [ ! -t 1 ]; } && [ "$NO_PROMPT" != "1" ]; then
@@ -365,8 +390,13 @@ elif [ -n "$VERSION" ]; then
 fi
 
 INSTALL_ARGS=(install)
-[ "$CANARY" = "1" ] && INSTALL_ARGS+=(--canary)
-[ -n "$VERSION" ] && INSTALL_ARGS+=(--version "$VERSION")
+if [ "$INSTALL_SOURCE" = "git" ]; then
+  INSTALL_ARGS+=(--repo "$REPO")
+  INSTALL_ARGS+=(--ref "$REF")
+else
+  [ "$CANARY" = "1" ] && INSTALL_ARGS+=(--canary)
+  [ -n "$VERSION" ] && INSTALL_ARGS+=(--version "$VERSION")
+fi
 [ "$NO_PROMPT" = "1" ] && INSTALL_ARGS+=(--yes)
 ensure_temp_dir
 NPM_USERCONFIG="$TEMP_DIR/npmrc"
