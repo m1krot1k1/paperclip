@@ -107,6 +107,15 @@ import {
   agentConfigurationDoc as openclawGatewayAgentConfigurationDoc,
   models as openclawGatewayModels,
 } from "@paperclipai/adapter-openclaw-gateway";
+import {
+  execute as openAICompatibleExecute,
+  testEnvironment as openAICompatibleTestEnvironment,
+  sessionCodec as openAICompatibleSessionCodec,
+} from "@paperclipai/adapter-openai-compatible/server";
+import {
+  agentConfigurationDoc as openAICompatibleAgentConfigurationDoc,
+  models as openAICompatibleModels,
+} from "@paperclipai/adapter-openai-compatible";
 import { listCodexModels, refreshCodexModels } from "./codex-models.js";
 import { listCursorModels } from "./cursor-models.js";
 import {
@@ -421,6 +430,18 @@ const piLocalAdapter: ServerAdapterModule = {
   agentConfigurationDoc: piAgentConfigurationDoc,
 };
 
+const openAICompatibleAdapter: ServerAdapterModule = {
+  type: "openai_compatible",
+  execute: openAICompatibleExecute,
+  testEnvironment: openAICompatibleTestEnvironment,
+  sessionCodec: openAICompatibleSessionCodec,
+  models: openAICompatibleModels,
+  supportsLocalAgentJwt: false,
+  supportsInstructionsBundle: false,
+  requiresMaterializedRuntimeSkills: false,
+  agentConfigurationDoc: openAICompatibleAgentConfigurationDoc,
+};
+
 const adaptersByType = new Map<string, ServerAdapterModule>();
 
 // For builtin types that are overridden by an external adapter, we keep the
@@ -448,6 +469,7 @@ function registerBuiltInAdapters() {
     openclawGatewayAdapter,
     processAdapter,
     httpAdapter,
+    openAICompatibleAdapter,
   ]) {
     adaptersByType.set(adapter.type, adapter);
   }

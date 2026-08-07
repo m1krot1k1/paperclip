@@ -51,6 +51,7 @@ export const help: Record<string, string> = {
   bootstrapPrompt: "Only sent when Paperclip starts a fresh session. Use this for stable setup guidance that should not be repeated on every heartbeat.",
   payloadTemplateJson: "Optional JSON merged into remote adapter request payloads before Paperclip adds its standard wake and workspace fields.",
   webhookUrl: "The URL that receives POST requests when the agent is invoked.",
+  baseUrl: "OpenAI-compatible base URL. Do not include /chat/completions — the adapter appends it. Examples: https://api.openai.com/v1, http://localhost:11434/v1 (Ollama), http://localhost:8000/v1 (vLLM).",
   heartbeatInterval: "Run this agent automatically on a timer. Useful for periodic tasks like checking for new work.",
   intervalSec: "Seconds between automatic heartbeat invocations.",
   timeoutSec: "Maximum seconds a run can take before being terminated. 0 means no timeout.",
