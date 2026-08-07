@@ -232,7 +232,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     messages.push({ role: "user", content: renderedPrompt });
   }
 
-  const env = { ...buildPaperclipEnv(agent), PAPERCLIP_RUN_ID: runId };
+  const env: Record<string, string> = { ...buildPaperclipEnv(agent), PAPERCLIP_RUN_ID: runId };
   if (authToken) env.PAPERCLIP_API_KEY = authToken;
   const loggedEnv = buildInvocationEnvForLogs(env, { resolvedCommand: model });
 

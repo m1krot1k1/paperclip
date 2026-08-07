@@ -19,9 +19,11 @@ export function parseOpenAICompatibleUsage(value: unknown): UsageSummary | undef
 
   const inputTokens = asNumber(usage.prompt_tokens);
   const outputTokens = asNumber(usage.completion_tokens);
-  const cachedInputTokens =
-    asNumber(usage.prompt_tokens_details?.cached_tokens) ??
-    asNumber(usage.cached_tokens);
+  let cachedInputTokens = asNumber(usage.cached_tokens);
+  const promptDetails = asRecord(usage.prompt_tokens_details);
+  if (promptDetails) {
+    cachedInputTokens = asNumber(promptDetails.cached_tokens) || cachedInputTokens;
+  }
 
   if (inputTokens <= 0 && outputTokens <= 0 && cachedInputTokens <= 0) {
     return undefined;
