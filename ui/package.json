@@ -82,7 +82,7 @@
     "@types/three": "^0.185.1",
     "@vitejs/plugin-react": "^4.3.4",
     "storybook": "10.5.5",
-    "tailwindcss": "^4.3.2",
+    "tailwindcss": "^4.3.3",
     "typescript": "^5.7.3",
     "vite": "^6.1.0",
     "vitest": "^4.1.10"
