@@ -140,6 +140,11 @@ const adapterDisplayMap: Record<string, AdapterDisplayInfo> = {
     icon: Cpu,
     comingSoon: true,
   },
+  openai_compatible: {
+    label: "OpenAI Compatible",
+    description: "Any OpenAI-compatible Chat Completions API",
+    icon: Sparkles,
+  },
 };
 
 // ---------------------------------------------------------------------------

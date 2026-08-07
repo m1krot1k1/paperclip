@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import { t } from ".";
 import en from "./locales/en.json";
 import { localeMessages } from "./locales";
-import { validateLocaleMessages } from "./locale-validation";
+import {
+  validateLocaleMessages,
+  validateSafeLocaleMessages,
+} from "./locale-validation";
 
 describe("locale validation", () => {
   it("resolves English messages with key and default fallbacks", () => {
@@ -14,7 +17,15 @@ describe("locale validation", () => {
   it("accepts registered locale files", () => {
     expect(Object.keys(localeMessages)).toContain("en");
     for (const [locale, messages] of Object.entries(localeMessages)) {
-      expect(validateLocaleMessages(messages), locale).toEqual([]);
+      // The default locale must be a complete message set.
+      if (locale === "en") {
+        expect(validateLocaleMessages(messages), locale).toEqual([]);
+      } else {
+        // Non-default locales are optional partial translations: they may
+        // omit any keys (falling back to English), but keys they do define
+        // must be safe and mirror English.
+        expect(validateSafeLocaleMessages(messages), locale).toEqual([]);
+      }
     }
   });
 
@@ -98,5 +109,26 @@ describe("locale validation", () => {
     expect(validateLocaleMessages({ message: "x".repeat(200) }, { message: "Short" })).toEqual([
       "message is too long: 200 characters exceeds 133",
     ]);
+  });
+
+  it("allows partial locales to omit keys (fall back to English)", () => {
+    // A subset is valid: it just defines a subset of the English keys.
+    expect(validateSafeLocaleMessages({ common: { save: "Save" } }, en)).toEqual([]);
+  });
+
+  it("rejects partial locale keys not defined in English", () => {
+    expect(
+      validateSafeLocaleMessages(
+        { common: { save: "Save", surprise: "Sorpresa" } },
+        en,
+      ),
+    ).toEqual(expect.arrayContaining(["common.surprise is not defined in English"]));
+  });
+
+  it("applies injection-safety checks to partial locale strings", () => {
+    // A partial string that injects markup not present in English is rejected.
+    expect(
+      validateSafeLocaleMessages({ common: { save: "<script>alert(1)</script>" } }, en),
+    ).toEqual(expect.arrayContaining(["common.save contains disallowed <script"]));
   });
 });

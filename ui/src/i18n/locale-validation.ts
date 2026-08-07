@@ -119,3 +119,61 @@ export function assertValidLocaleMessages(candidate: unknown, englishReference: 
     throw new Error(`Invalid locale messages:\n${errors.join("\n")}`);
   }
 }
+
+// ---------------------------------------------------------------------------
+// Partial locale validation
+//
+// The canonical locale (`en`) must stay a complete mirror of itself. Every
+// other locale is treated as an OPTIONAL partial translation: it may omit any
+// keys (i18next falls back to English for the remainder) but must never add
+// keys that don't exist in English, and every string it does ship must pass
+// the same safety checks (interpolation placeholders, no script/HTML/URL
+// injection, length cap) against its English counterpart.
+// ---------------------------------------------------------------------------
+
+function validateSubsetNode(path: string[], candidate: unknown, englishReference: unknown, errors: string[]) {
+  if (typeof englishReference === "string") {
+    if (typeof candidate !== "string") {
+      errors.push(`${formatPath(path)} must be a string`);
+      return;
+    }
+    validateString(path, candidate, englishReference, errors);
+    return;
+  }
+
+  if (!isPlainObject(englishReference)) {
+    errors.push(`${formatPath(path)} has unsupported English reference type`);
+    return;
+  }
+
+  if (!isPlainObject(candidate)) {
+    errors.push(`${formatPath(path)} must be an object`);
+    return;
+  }
+
+  const englishKeys = Object.keys(englishReference);
+  const candidateKeys = Object.keys(candidate);
+  const extraKeys = candidateKeys.filter((key) => !englishKeys.includes(key));
+  for (const key of extraKeys) {
+    errors.push(`${formatPath([...path, key])} is not defined in English`);
+  }
+
+  for (const key of englishKeys) {
+    if (key in candidate) {
+      validateSubsetNode([...path, key], candidate[key], englishReference[key], errors);
+    }
+  }
+}
+
+export function validateSafeLocaleMessages(candidate: unknown, englishReference: unknown = en) {
+  const errors: string[] = [];
+  validateSubsetNode([], candidate, englishReference, errors);
+  return errors;
+}
+
+export function assertSafeLocaleMessages(candidate: unknown, englishReference: unknown = en) {
+  const errors = validateSafeLocaleMessages(candidate, englishReference);
+  if (errors.length > 0) {
+    throw new Error(`Invalid locale messages:\n${errors.join("\n")}`);
+  }
+}
