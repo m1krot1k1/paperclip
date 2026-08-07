@@ -152,7 +152,12 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-[ "$#" -eq 0 ] || fail "unexpected argument: $1"
+# Any tokens after `--` are tolerated for compatibility with the upstream
+# invocations (`... | bash -s -- <flags> paperclipai onboard --yes`). They are
+# redundant here because this script drives the git-ref install itself.
+# shellcheck disable=SC2034
+for _ignore in "$@"; do :; done
+unset _ignore
 
 if [ "$CANARY" = "1" ] && [ -n "$VERSION" ]; then
   fail "--canary and --version cannot be used together"
