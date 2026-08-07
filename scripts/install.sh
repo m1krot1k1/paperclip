@@ -418,10 +418,22 @@ bootstrap_cli_from_fork() {
       && bash scripts/build-npm.sh --skip-checks --skip-typecheck ) \
     || fail "failed to build the Paperclip CLI from $repo@$ref"
 
-  cli_entry="$boot_dir/cli-install/dist/index.js"
-  mkdir -p "$(dirname "$cli_entry")"
-  cp "$cli_dir/dist/index.js" "$cli_entry"
-  chmod +x "$cli_entry"
+  # The bundled dist/index.js declares external runtime dependencies (commander,
+  # picocolors, @paperclipai/server, embedded-postgres, ...). Running it in
+  # place fails with MODULE_NOT_FOUND, so stage the built tarball with npm,
+  # exactly like the Paperclip CLI's own git-install bootstrap.
+  local tarball
+  tarball="$(cd "$cli_dir" && npm pack --silent 2>/dev/null | tail -1)"
+  [ -n "$tarball" ] && [ -f "$cli_dir/$tarball" ] || fail "failed to pack the Paperclip CLI from $repo@$ref"
+
+  local cli_install_dir="$boot_dir/cli-install"
+  mkdir -p "$cli_install_dir"
+  ( cd "$cli_install_dir" \
+      && npm install --no-fund --no-audit --omit=optional "$cli_dir/$tarball" ) \
+    || fail "failed to install the Paperclip CLI from $repo@$ref"
+
+  cli_entry="$cli_install_dir/node_modules/paperclipai/dist/index.js"
+  [ -f "$cli_entry" ] || fail "installed Paperclip CLI entrypoint not found"
   printf '%s' "$cli_entry"
 }
 
