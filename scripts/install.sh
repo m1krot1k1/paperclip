@@ -462,8 +462,14 @@ prepare_lan_allowed_hosts() {
   [ "${PAPERCLIP_ALLOWED_HOSTNAMES:-}" ] && return 0
   local hosts=""
   local candidate
-  for candidate in "$(hostname 2>/dev/null || true)" "$(hostname -f 2>/dev/null || true)" $(hostname -I 2>/dev/null || true); do
-    candidate="${candidate,,}"
+  local interface_ip=""
+  if command -v ip >/dev/null 2>&1; then
+    interface_ip="$(ip -o -4 addr show scope global 2>/dev/null | awk '{sub(/\/.*/, "", $4); print $4}' || true)"
+  elif command -v ifconfig >/dev/null 2>&1; then
+    interface_ip="$(ifconfig 2>/dev/null | awk '/inet / && $2 != "127.0.0.1" { print $2 }' || true)"
+  fi
+  for candidate in "$(hostname 2>/dev/null || true)" "$(hostname -f 2>/dev/null || true)" $interface_ip; do
+    candidate="$(printf '%s' "$candidate" | tr '[:upper:]' '[:lower:]')"
     case "$candidate" in
       ""|localhost|localhost.localdomain|127.*|::1) continue ;;
     esac
