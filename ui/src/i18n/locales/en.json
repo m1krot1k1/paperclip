@@ -18,6 +18,13 @@
       "apiKey": "API key",
       "localKeyHint": "optional for local servers",
       "invalidUrl": "Enter a valid http(s) URL without /chat/completions.",
+      "showAdvanced": "Show advanced settings",
+      "hideAdvanced": "Hide advanced settings",
+      "advancedHint": "Local adapters use their configured command. OpenAI-compatible adapters use the model, base URL, and API key above.",
+      "testConnection": "Test connection",
+      "testing": "Testing…",
+      "connectionSuccess": "Connection successful",
+      "connectionFailed": "Connection failed",
       "createCeo": "Create CEO",
       "connecting": "Connecting…"
     },

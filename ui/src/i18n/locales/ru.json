@@ -18,6 +18,13 @@
       "apiKey": "API key",
       "localKeyHint": "необязательно для локальных серверов",
       "invalidUrl": "Укажите корректный http(s)-адрес без /chat/completions.",
+      "showAdvanced": "Показать расширенные настройки",
+      "hideAdvanced": "Скрыть расширенные настройки",
+      "advancedHint": "Локальные адаптеры используют настроенную команду. OpenAI-compatible использует указанную модель, базовый URL и API-ключ.",
+      "testConnection": "Проверить подключение",
+      "testing": "Проверка…",
+      "connectionSuccess": "Подключение успешно",
+      "connectionFailed": "Не удалось подключиться",
       "createCeo": "Создать CEO",
       "connecting": "Подключение…"
     },

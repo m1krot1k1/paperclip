@@ -65,11 +65,13 @@ export function CloudOnboardingFlow({
   const [codebase, setCodebase] = useState<OnboardingCodebase | null>(null);
   const [agentRole, setAgentRole] = useState("");
   const [agentName, setAgentName] = useState("");
+  const [adapterType, setAdapterType] = useState(DEFAULT_ADAPTER);
   const [model, setModel] = useState("gpt-4o");
   const [baseUrl, setBaseUrl] = useState("https://api.openai.com/v1");
   const [apiKey, setApiKey] = useState("");
   const [taskChoice, setTaskChoice] = useState<FirstTaskChoice | null>(null);
   const [customTask, setCustomTask] = useState("");
+  const [providerTestResult, setProviderTestResult] = useState<"success" | "failure" | null>(null);
 
   function handleRoleChange(value: string) {
     setAgentRole(value);
@@ -92,7 +94,7 @@ export function CloudOnboardingFlow({
     }
     const result = await flow.hireLeadAgent({
       agentName: agentName || agentRole,
-      adapter: { adapterType: DEFAULT_ADAPTER, model, command: "", args: "", url: baseUrl, authToken: apiKey },
+      adapter: { adapterType, model, command: "", args: "", url: baseUrl, authToken: apiKey },
       instructions: {
         companyName,
         companyGoal: mission,
@@ -109,6 +111,18 @@ export function CloudOnboardingFlow({
       requireEnvProbe: false,
     });
     if (result) setStep("task");
+  }
+
+  async function handleTestConnection() {
+    const result = await flow.runAdapterEnvironmentTest({
+      adapterType,
+      model,
+      command: "",
+      args: "",
+      url: baseUrl,
+      authToken: apiKey,
+    });
+    setProviderTestResult(result?.status === "pass" || result?.status === "warn" ? "success" : "failure");
   }
 
   async function handleGetStarted() {
@@ -170,6 +184,15 @@ export function CloudOnboardingFlow({
           model={model}
           baseUrl={baseUrl}
           apiKey={apiKey}
+          adapterType={adapterType}
+          onAdapterTypeChange={(value) => {
+            setAdapterType(value);
+            setProviderTestResult(null);
+            flow.clearAdapterEnvResult();
+          }}
+          onTestConnection={handleTestConnection}
+          testing={flow.adapterEnvLoading}
+          testResult={providerTestResult}
           onModelChange={setModel}
           onBaseUrlChange={setBaseUrl}
           onApiKeyChange={setApiKey}

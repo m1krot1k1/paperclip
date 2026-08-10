@@ -463,12 +463,19 @@ prepare_lan_allowed_hosts() {
   local hosts=""
   local candidate
   local interface_ip=""
+  local public_ip=""
   if command -v ip >/dev/null 2>&1; then
     interface_ip="$(ip -o -4 addr show scope global 2>/dev/null | awk '{sub(/\/.*/, "", $4); print $4}' || true)"
   elif command -v ifconfig >/dev/null 2>&1; then
     interface_ip="$(ifconfig 2>/dev/null | awk '/inet / && $2 != "127.0.0.1" { print $2 }' || true)"
   fi
-  for candidate in "$(hostname 2>/dev/null || true)" "$(hostname -f 2>/dev/null || true)" $interface_ip; do
+  # A LAN bind is commonly accessed through the host's public IPv4 address,
+  # which is not necessarily present on a local interface. Include it during
+  # onboarding so authenticated/private mode works immediately after install.
+  if command -v curl >/dev/null 2>&1; then
+    public_ip="$(curl --fail --silent --show-error --max-time 5 -4 https://api.ipify.org 2>/dev/null || true)"
+  fi
+  for candidate in "$(hostname 2>/dev/null || true)" "$(hostname -f 2>/dev/null || true)" $interface_ip "$public_ip"; do
     candidate="$(printf '%s' "$candidate" | tr '[:upper:]' '[:lower:]')"
     case "$candidate" in
       ""|localhost|localhost.localdomain|127.*|::1) continue ;;
