@@ -83,4 +83,14 @@ describe("openai-compatible build-config", () => {
     expect(config.apiKey).toBeUndefined();
     expect(config.baseUrl).toBe("http://localhost:11434/v1");
   });
+
+  it("normalizes a pasted chat completions endpoint to the adapter base URL", () => {
+    const config = buildOpenAICompatibleConfig({
+      ...base,
+      url: "https://hskyauefqcgbvgvxkluj.supabase.co/functions/v1/gonka/chat/completions/",
+      model: "moonshotai/Kimi-K2.6",
+    });
+    expect(config.baseUrl).toBe("https://hskyauefqcgbvgvxkluj.supabase.co/functions/v1/gonka");
+    expect(config.model).toBe("moonshotai/Kimi-K2.6");
+  });
 });

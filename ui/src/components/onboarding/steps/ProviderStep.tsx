@@ -36,7 +36,7 @@ export function ProviderStep({
       return false;
     }
   })();
-  const canContinue = model.trim().length > 0 && validUrl;
+  const canContinue = model.trim().length > 0 && validUrl && baseUrl.trim().length > 0;
 
   return (
     <OnboardingCard>

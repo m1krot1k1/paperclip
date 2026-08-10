@@ -61,6 +61,7 @@
     "showLess": "Show less",
     "optional": "Optional",
     "required": "Required",
+    "unread": "unread",
     "none": "None",
     "all": "All",
     "yes": "Yes",
@@ -72,6 +73,10 @@
     "comingSoon": "Coming soon"
   },
   "nav": {
+    "search": "Search",
+    "work": "Work",
+    "company": "Company",
+    "decisions": "Decisions",
     "dashboard": "Dashboard",
     "inbox": "Inbox",
     "issues": "Issues",
@@ -86,7 +91,21 @@
     "instances": "Instance settings",
     "profile": "Profile",
     "settings": "Settings",
-    "more": "More"
+    "more": "More",
+    "newTask": "New Task",
+    "status": "Status",
+    "conferenceRoom": "Conference Room",
+    "tasks": "Tasks",
+    "cases": "Cases",
+    "routines": "Routines",
+    "pipelines": "Pipelines",
+    "artifacts": "Artifacts",
+    "workspaces": "Workspaces",
+    "timeline": "Timeline",
+    "activity": "Activity",
+    "keepSidebarExpanded": "Keep sidebar expanded",
+    "expandSidebar": "Expand sidebar",
+    "collapseSidebar": "Collapse sidebar"
   },
   "account": {
     "menuAriaLabel": "Open account menu",

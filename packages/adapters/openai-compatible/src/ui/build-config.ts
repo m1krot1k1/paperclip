@@ -16,10 +16,15 @@ function parseJsonObject(text: string): Record<string, unknown> | null {
   }
 }
 
+function normalizeBaseUrl(value: string): string {
+  const normalized = value.trim().replace(/\/+$/, "");
+  return normalized.replace(/\/chat\/completions$/i, "");
+}
+
 export function buildOpenAICompatibleConfig(v: CreateConfigValues): Record<string, unknown> {
   const ac: Record<string, unknown> = {};
 
-  if (v.url) ac.baseUrl = v.url;
+  if (v.url) ac.baseUrl = normalizeBaseUrl(v.url);
   if (v.authToken) ac.apiKey = v.authToken;
 
   const headers = parseJsonObject(v.headersJson ?? "");

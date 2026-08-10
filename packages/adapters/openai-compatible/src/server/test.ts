@@ -19,7 +19,8 @@ function nonEmpty(value: unknown): string | null {
 }
 
 function normalizeBaseUrl(value: string): string {
-  return value.replace(/\/+$/, "");
+  const normalized = value.trim().replace(/\/+$/, "");
+  return normalized.replace(/\/chat\/completions$/i, "");
 }
 
 export async function testEnvironment(

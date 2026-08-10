@@ -61,6 +61,7 @@
     "showLess": "Скрыть",
     "optional": "Необязательно",
     "required": "Обязательно",
+    "unread": "непрочитанных",
     "none": "Нет",
     "all": "Все",
     "yes": "Да",
@@ -72,6 +73,10 @@
     "comingSoon": "Скоро"
   },
   "nav": {
+    "search": "Поиск",
+    "work": "Работа",
+    "company": "Компания",
+    "decisions": "Решения",
     "dashboard": "Дашборд",
     "inbox": "Входящие",
     "issues": "Задачи",
@@ -86,7 +91,21 @@
     "instances": "Настройки инстанса",
     "profile": "Профиль",
     "settings": "Настройки",
-    "more": "Ещё"
+    "more": "Ещё",
+    "newTask": "Новая задача",
+    "status": "Статус",
+    "conferenceRoom": "Конференц-зал",
+    "tasks": "Задачи",
+    "cases": "Кейсы",
+    "routines": "Рутины",
+    "pipelines": "Пайплайны",
+    "artifacts": "Артефакты",
+    "workspaces": "Рабочие пространства",
+    "timeline": "Хронология",
+    "activity": "Активность",
+    "keepSidebarExpanded": "Закрепить открытую боковую панель",
+    "expandSidebar": "Развернуть боковую панель",
+    "collapseSidebar": "Свернуть боковую панель"
   },
   "account": {
     "menuAriaLabel": "Открыть меню аккаунта",
