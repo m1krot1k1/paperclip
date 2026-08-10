@@ -1,6 +1,6 @@
 import { UserPlus, Lightbulb, ShieldAlert, ShieldCheck } from "lucide-react";
 import { formatCents } from "../lib/utils";
-import i18n, { useTranslation } from "../i18n";
+import { i18n, useTranslation } from "../i18n";
 
 export const typeLabel: Record<string, string> = {
   hire_agent: i18n.t("approvals.type.hire_agent"),
