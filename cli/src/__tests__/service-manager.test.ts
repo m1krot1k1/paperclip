@@ -39,6 +39,13 @@ describe("service definition generation", () => {
     expect(unit).not.toContain("API_KEY");
   });
 
+  it("opens embedded-postgres paths under cli/installs for the postgres helper user", () => {
+    const unit = renderSystemdUnit({ instanceId: "team-a", shimPath: "/home/alice/.local/bin/paperclipai", homeDir: "/home/alice/.paperclip" });
+    expect(unit).toContain('chmod a+rx "%h"/.paperclip "%h"/.paperclip/cli "%h"/.paperclip/cli/installs "%h"/.paperclip/cli/installs/git "%h"/.paperclip/cli/current');
+    expect(unit).toContain('for root in "%h"/.paperclip/cli/current "%h"/.paperclip/cli/installs/git/*');
+    expect(unit).toContain('"$native/lib/postgresql/*"');
+  });
+
   it("escapes systemd variable and specifier expansion in configured values", () => {
     const unit = renderSystemdUnit({
       instanceId: "team-$USER-%i",

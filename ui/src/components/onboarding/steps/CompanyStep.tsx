@@ -16,6 +16,7 @@ export function CompanyStep({
   onBack,
   onNext,
   loading,
+  error,
   step,
   total,
 }: {
@@ -26,6 +27,7 @@ export function CompanyStep({
   onBack: () => void;
   onNext: () => void;
   loading?: boolean;
+  error?: string | null;
   step: number;
   total?: number;
 }) {
@@ -82,6 +84,9 @@ export function CompanyStep({
           loadingLabel={t("onboarding.agent.creating")}
           onPrimary={onNext}
         />
+        {error && !loading ? (
+          <p className="text-sm text-destructive">{error}</p>
+        ) : null}
       </div>
     </OnboardingCard>
   );

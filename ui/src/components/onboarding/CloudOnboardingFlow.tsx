@@ -154,6 +154,7 @@ export function CloudOnboardingFlow({
           onBack={() => setStep("start")}
           onNext={handleCreateCompany}
           loading={flow.loading}
+          error={flow.error}
         />
       )}
       {step === "codebase" && (
