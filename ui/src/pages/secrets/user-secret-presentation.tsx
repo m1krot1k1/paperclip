@@ -2,7 +2,7 @@ import type { SecretStatus, UserSecretCoverageSummary } from "@paperclipai/share
 import { UserRound } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Badge } from "@/components/ui/badge";
-import i18n from "../../i18n";
+import { i18n } from "../../i18n";
 
 /**
  * User secrets are visually distinct from company secrets via a violet accent
