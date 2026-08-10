@@ -425,7 +425,11 @@ bootstrap_cli_from_fork() {
 
   log "Installing dependencies and building the Paperclip CLI from $repo@$ref" >&2
   ( cd "$base_dir" \
-      && pnpm install --frozen-lockfile \
+      && if ! pnpm install --frozen-lockfile; then \
+        log "Lockfile metadata differs from the downloaded patch set; refreshing it in the temporary checkout" >&2; \
+        pnpm install --lockfile-only --ignore-scripts --no-frozen-lockfile; \
+        pnpm install --frozen-lockfile; \
+      fi \
       && bash scripts/build-npm.sh --skip-checks --skip-typecheck ) >&2 \
     || fail "failed to build the Paperclip CLI from $repo@$ref"
 
