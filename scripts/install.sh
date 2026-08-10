@@ -427,7 +427,7 @@ bootstrap_cli_from_fork() {
 
   log "Installing dependencies and building the Paperclip CLI from $repo@$ref" >&2
   ( cd "$base_dir" \
-      && corepack pnpm install --frozen-lockfile \
+      && pnpm install --frozen-lockfile \
       && bash scripts/build-npm.sh --skip-checks --skip-typecheck ) >&2 \
     || fail "failed to build the Paperclip CLI from $repo@$ref"
 
