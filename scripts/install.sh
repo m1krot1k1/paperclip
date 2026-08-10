@@ -142,6 +142,14 @@ while [ "$#" -gt 0 ]; do
       usage
       exit 0
       ;;
+    paperclipai|onboard)
+      # Keep compatibility with the upstream invocation:
+      # `bash -s -- <flags> paperclipai onboard --yes`.
+      while [ "$#" -gt 0 ]; do
+        shift
+      done
+      break
+      ;;
     --)
       shift
       break
