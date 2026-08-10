@@ -69,8 +69,11 @@ export async function handleOnboardService(
   if (!explicitlyRequested && !(await deps.confirm())) return false;
 
   await detection.manager.install({ startNow: true, startOnLogin: true });
-  if (!explicitlyRequested && detection.manager.enableLinger && await deps.confirmLinger()) {
-    await detection.manager.enableLinger();
+  if (detection.manager.enableLinger) {
+    const shouldEnableLinger = explicitlyRequested || await deps.confirmLinger();
+    if (shouldEnableLinger) {
+      await detection.manager.enableLinger();
+    }
   }
   deps.success(`Installed and started ${detection.manager.serviceName}.`);
   return true;
