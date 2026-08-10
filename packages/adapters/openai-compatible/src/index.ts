@@ -20,7 +20,7 @@ Adapter: openai_compatible
 Use when:
 - You want Paperclip to drive a hosted model exposed through an OpenAI-compatible Chat Completions API (\`POST {baseUrl}/chat/completions\`).
 - The provider is a self-hosted OpenAI-compatible gateway, a local model server (vLLM, Ollama, LM Studio, llama.cpp), or any provider that mirrors OpenAI's \`/v1/chat/completions\` request/response schema.
-- You need a lightweight, conversation-based agent that reports back through Paperclip's API and does not require a full coding-agent CLI.
+- You need a lightweight agent that can use Paperclip-managed MCP gateway tools when the configured model supports OpenAI tool calling.
 
 Don't use when:
 - You need a full interactive coding-agent CLI with session/tool ecosystem (use claude_local, codex_local, etc.).
@@ -40,8 +40,8 @@ Core fields:
 - env (object, optional): KEY=VALUE environment variables made available to the agent via the Paperclip runtime (these are not sent in the request body; the hook/message carries the Paperclip wake context instead).
 
 Operational notes:
-- The adapter sends \`POST {baseUrl}/chat/completions\` with OpenAI \`messages\`, \`model\`, \`temperature\`, \`max_completion_tokens\`, and optional streaming. Authentication is a bearer token; secrets must come from \`config.apiKey\` or \`config.headers\` (never from prompt templates).
-- Paperclip wake context (task, wake reason, API base) is embedded in the system message so the model can report progress and completion back through the Paperclip API.
+- The adapter sends \`POST {baseUrl}/chat/completions\` with OpenAI \`messages\`, \`model\`, \`temperature\`, \`max_completion_tokens\`, and optional \`tools\`. When Paperclip-managed MCP gateways are present, tool discovery and calls stay scoped to the short-lived gateway tokens issued for the heartbeat run.
+- Paperclip wake context (task, wake reason, API base) is embedded in the system message. Models without OpenAI tool-calling support retain the text-only fallback; use \`claude_local\` or \`codex_local\` when full workspace tooling is required.
 - Usage/cost is parsed from the standard OpenAI \`usage\` object (\`prompt_tokens\`, \`completion_tokens\`, \`cached_tokens\`) when the provider returns it.
 - \`apiKey\` and any \`Authorization\`-like request headers are redacted from invocation logs.
 `;

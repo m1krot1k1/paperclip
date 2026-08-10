@@ -3558,7 +3558,7 @@ export function createToolGatewayService(
       .where(and(...conditions))
       .limit(1);
     if (!row) {
-      await recordNamedGatewayAuthFailure({
+      return recordNamedGatewayAuthFailure({
         gatewayId: input.gatewayId,
         gatewayPublicId: input.gatewayPublicId,
         bearerToken,

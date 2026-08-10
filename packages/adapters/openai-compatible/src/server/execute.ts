@@ -24,8 +24,30 @@ import {
 } from "./parse.js";
 
 interface ChatMessage {
-  role: "system" | "user" | "assistant";
+  role: "system" | "user" | "assistant" | "tool";
   content: string;
+  tool_calls?: OpenAIToolCall[];
+  tool_call_id?: string;
+}
+
+interface OpenAIToolCall {
+  id: string;
+  type: "function";
+  function: { name: string; arguments: string };
+}
+
+interface OpenAITool {
+  type: "function";
+  function: {
+    name: string;
+    description?: string;
+    parameters: Record<string, unknown>;
+  };
+}
+
+interface McpSession {
+  sessionId: string | null;
+  protocolVersion: string;
 }
 
 interface CompletionOutput {
@@ -34,6 +56,7 @@ interface CompletionOutput {
   usage: UsageSummary | undefined;
   timedOut: boolean;
   failureMessage: string | null;
+  toolCalls: OpenAIToolCall[];
 }
 
 const HISTORY_WINDOW = 40;
@@ -53,6 +76,156 @@ function nonEmpty(value: unknown): string | null {
 
 function isUnsupportedToolCallOutput(value: string): boolean {
   return /<\|tool_(?:calls?_section|call)_(?:begin|end)\|>|\bfunctions\.[A-Za-z0-9_]+:/i.test(value);
+}
+
+function looksLikeJsonRpcMessage(value: unknown): boolean {
+  const record = parseObject(value);
+  return Boolean(record && ("result" in record || "error" in record || "method" in record || "id" in record));
+}
+
+function parseMcpResponseBody(body: string, contentType: string | null): unknown {
+  if (!(contentType ?? "").toLowerCase().includes("text/event-stream")) {
+    return JSON.parse(body) as unknown;
+  }
+
+  const events = body.replace(/\r\n/g, "\n").split(/\n\n+/);
+  let firstParsed: unknown;
+  let sawData = false;
+  let lastError: unknown = null;
+  for (const event of events) {
+    const dataLines = event
+      .split("\n")
+      .filter((line) => line.startsWith("data:"))
+      .map((line) => line.slice("data:".length).replace(/^ /, ""));
+    if (dataLines.length === 0) continue;
+    const data = dataLines.join("\n");
+    try {
+      const parsed = JSON.parse(data) as unknown;
+      if (!sawData) {
+        firstParsed = parsed;
+        sawData = true;
+      }
+      if (looksLikeJsonRpcMessage(parsed)) return parsed;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  if (sawData) return firstParsed;
+  if (lastError) throw lastError;
+  throw new SyntaxError("MCP SSE response contained no data events");
+}
+
+function responseHeader(response: Response, name: string): string | null {
+  return response.headers.get(name);
+}
+
+async function mcpRequest(
+  server: { url: string; token: string },
+  session: McpSession,
+  request: { id?: number | string; method: string; params?: Record<string, unknown> },
+): Promise<unknown> {
+  const response = await fetch(server.url, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      accept: "application/json, text/event-stream",
+      authorization: `Bearer ${server.token}`,
+      ...(session.sessionId ? { "mcp-session-id": session.sessionId } : {}),
+    },
+    body: JSON.stringify({ jsonrpc: "2.0", ...request }),
+  });
+  const body = await response.text();
+  const nextSessionId = responseHeader(response, "mcp-session-id");
+  if (nextSessionId) session.sessionId = nextSessionId;
+  if (!body.trim()) {
+    if (!response.ok) throw new Error(`Paperclip MCP gateway request failed with HTTP ${response.status}.`);
+    return null;
+  }
+  const payload = parseMcpResponseBody(body, response.headers.get("content-type"));
+  if (!response.ok) throw new Error(`Paperclip MCP gateway request failed with HTTP ${response.status}.`);
+  const error = parseObject(parseObject(payload)?.error);
+  if (error) throw new Error(asString(error.message, "Paperclip MCP gateway rejected the request."));
+  return payload;
+}
+
+async function initializeMcpSession(server: { url: string; token: string }): Promise<McpSession> {
+  const session: McpSession = { sessionId: null, protocolVersion: "2025-03-26" };
+  const payload = await mcpRequest(server, session, {
+    id: 0,
+    method: "initialize",
+    params: {
+      protocolVersion: session.protocolVersion,
+      capabilities: {},
+      clientInfo: { name: "Paperclip OpenAI-compatible adapter", version: "1.0.0" },
+    },
+  });
+  const result = parseObject(parseObject(payload)?.result);
+  const negotiatedVersion = nonEmpty(result?.protocolVersion);
+  if (negotiatedVersion) session.protocolVersion = negotiatedVersion;
+  await mcpRequest(server, session, {
+    method: "notifications/initialized",
+    params: {},
+  });
+  return session;
+}
+
+function parseToolCalls(value: unknown): OpenAIToolCall[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((entry) => {
+    const record = parseObject(entry);
+    const fn = parseObject(record?.function);
+    const id = nonEmpty(record?.id);
+    const name = nonEmpty(fn?.name);
+    const args = typeof fn?.arguments === "string" ? fn.arguments : null;
+    return id && name && args !== null
+      ? [{ id, type: "function" as const, function: { name, arguments: args } }]
+      : [];
+  });
+}
+
+async function listGatewayTools(
+  server: { url: string; token: string },
+  session: McpSession,
+): Promise<OpenAITool[]> {
+  const payload = await mcpRequest(server, session, { id: 1, method: "tools/list", params: {} });
+  const result = parseObject(parseObject(payload)?.result);
+  const tools = Array.isArray(result?.tools) ? result.tools : [];
+  return tools.flatMap((entry) => {
+    const tool = parseObject(entry);
+    const name = nonEmpty(tool?.name);
+    if (!name) return [];
+    return [{
+      type: "function" as const,
+      function: {
+        name,
+        description: nonEmpty(tool?.description) ?? undefined,
+        parameters: parseObject(tool?.inputSchema) ?? { type: "object", properties: {} },
+      },
+    }];
+  });
+}
+
+async function callGatewayTool(
+  server: { url: string; token: string; session: McpSession },
+  call: OpenAIToolCall,
+): Promise<string> {
+  let argumentsValue: unknown = {};
+  try {
+    argumentsValue = call.function.arguments ? JSON.parse(call.function.arguments) : {};
+  } catch {
+    return "Tool call rejected: arguments were not valid JSON.";
+  }
+  const payload = await mcpRequest(server, server.session, {
+    id: call.id,
+    method: "tools/call",
+    params: { name: call.function.name, arguments: argumentsValue },
+  });
+  const result = parseObject(parseObject(payload)?.result);
+  const content = Array.isArray(result?.content) ? result.content : [];
+  return content
+    .map((item) => asString(parseObject(item)?.text, ""))
+    .filter(Boolean)
+    .join("\n") || JSON.stringify(result?.structuredContent ?? result ?? null);
 }
 
 function normalizeBaseUrl(value: string): string {
@@ -99,9 +272,9 @@ function buildContextMessage(ctx: AdapterExecutionContext): string {
     taskId
       ? `Assigned task/issue: ${taskId}`
       : "No specific issue is assigned; pick work from the company queue.",
-    "This adapter is text-only: it does not provide shell, curl, HTTP, filesystem, or other executable tools.",
-    "Do not emit tool-call markup, pseudo tool calls, or claim that you fetched data or changed Paperclip state.",
-    "Return a concise plain-text answer based only on the context supplied in this message. Paperclip will record your answer, but you cannot update issue state from this adapter.",
+    "Paperclip may provide governed MCP tools in the request. Use only the tools presented by the API and never invent tool names or endpoints.",
+    "Do not emit pseudo tool calls or claim that you fetched data or changed Paperclip state unless a governed tool result confirms it.",
+    "If no tools are presented, return a concise plain-text answer based only on the context supplied in this message.",
   ];
   if (wakePrompt) pieces.push("", wakePrompt);
   if (wakePayloadJson) pieces.push("", "Structured wake payload:", wakePayloadJson);
@@ -118,15 +291,17 @@ async function requestCompletion(args: {
   maxTokens: number | null;
   timeoutSec: number;
   maxRetries: number;
+  tools?: OpenAITool[];
   onStderr: (line: string) => Promise<void>;
 }): Promise<CompletionOutput> {
-  const { baseUrl, apiKey, headers, model, messages, temperature, maxTokens, timeoutSec, maxRetries, onStderr } = args;
+  const { baseUrl, apiKey, headers, model, messages, temperature, maxTokens, timeoutSec, maxRetries, tools, onStderr } = args;
   const url = `${baseUrl}/chat/completions`;
   const body: Record<string, unknown> = {
     model,
     messages,
     temperature,
     ...(maxTokens ? { max_completion_tokens: maxTokens } : {}),
+    ...(tools?.length ? { tools, tool_choice: "auto" } : {}),
   };
 
   const requestHeaders: Record<string, string> = {
@@ -163,7 +338,7 @@ async function requestCompletion(args: {
         lastError = messageError ?? `HTTP ${res.status}`;
         await onStderr(`[openai-compatible] request failed: ${lastError}`);
         if (res.status >= 500 || res.status === 429) continue;
-        return { content: "", model: null, usage: undefined, timedOut: false, failureMessage: lastError };
+        return { content: "", model: null, usage: undefined, timedOut: false, failureMessage: lastError, toolCalls: [] };
       }
 
       const parsed = parseJson(rawBody);
@@ -174,6 +349,7 @@ async function requestCompletion(args: {
           usage: undefined,
           timedOut: false,
           failureMessage: "Provider returned an invalid JSON response.",
+          toolCalls: [],
         };
       }
 
@@ -181,6 +357,7 @@ async function requestCompletion(args: {
       const first = parseObject(choices[0]);
       const message = parseObject(first?.message);
       const content = asString(message?.content, "").trim();
+      const toolCalls = parseToolCalls(message?.tool_calls);
       const usage = parseOpenAICompatibleUsage(parsed.usage);
       const returnedModel = typeof parsed.model === "string" && parsed.model.trim() ? parsed.model : null;
 
@@ -194,8 +371,9 @@ async function requestCompletion(args: {
           usage,
           timedOut: false,
           failureMessage:
-            "The model returned a tool call, but openai_compatible is text-only and cannot execute tools. " +
-            "Use a tool-enabled local adapter such as claude_local or codex_local for API and workspace operations.",
+            "The provider returned unsupported tool-call markup instead of OpenAI tool_calls. " +
+            "Use an OpenAI tool-calling model or a tool-enabled local adapter such as claude_local or codex_local.",
+          toolCalls: [],
         };
       }
 
@@ -204,7 +382,8 @@ async function requestCompletion(args: {
         model: returnedModel,
         usage,
         timedOut: false,
-        failureMessage: content ? null : "Provider returned no assistant content.",
+        failureMessage: content || toolCalls.length > 0 ? null : "Provider returned no assistant content.",
+        toolCalls,
       };
     } catch (err) {
       const timedOut = err instanceof Error && err.name === "AbortError";
@@ -216,16 +395,16 @@ async function requestCompletion(args: {
           : String(err);
       await onStderr(`[openai-compatible] error: ${lastError}`);
       if (timedOut) {
-        return { content: "", model: null, usage: undefined, timedOut: true, failureMessage: lastError };
+        return { content: "", model: null, usage: undefined, timedOut: true, failureMessage: lastError, toolCalls: [] };
       }
       if (attempt < maxRetries) continue;
-      return { content: "", model: null, usage: undefined, timedOut: false, failureMessage: lastError };
+      return { content: "", model: null, usage: undefined, timedOut: false, failureMessage: lastError, toolCalls: [] };
     } finally {
       if (timer) clearTimeout(timer);
     }
   }
 
-  return { content: "", model: null, usage: undefined, timedOut: false, failureMessage: lastError };
+  return { content: "", model: null, usage: undefined, timedOut: false, failureMessage: lastError, toolCalls: [] };
 }
 
 export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExecutionResult> {
@@ -286,18 +465,91 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
 
   await onLog("stdout", `[openai-compatible] invoking ${baseUrl}/chat/completions model=${model}\n`);
 
-  const result = await requestCompletion({
-    baseUrl,
-    apiKey,
-    headers,
-    model,
-    messages,
-    temperature,
-    maxTokens,
-    timeoutSec,
-    maxRetries,
-    onStderr: (line) => onLog("stderr", `${line}\n`),
-  });
+  const runtimeServers = ctx.runtimeMcp?.getServers() ?? [];
+  const toolRoutes = new Map<string, { url: string; token: string; session: McpSession }>();
+  const tools: OpenAITool[] = [];
+  for (const server of runtimeServers) {
+    try {
+      const session = await initializeMcpSession(server);
+      const discovered = await listGatewayTools(server, session);
+      for (const tool of discovered) {
+        if (toolRoutes.has(tool.function.name)) continue;
+        toolRoutes.set(tool.function.name, { ...server, session });
+        tools.push(tool);
+      }
+    } catch (error) {
+      await onLog(
+        "stderr",
+        `[openai-compatible] MCP discovery skipped for ${server.name}: ${error instanceof Error ? error.message : "request failed"}\n`,
+      );
+    }
+  }
+  if (tools.length > 0) {
+    await onLog("stdout", `[openai-compatible] discovered ${tools.length} Paperclip MCP tool(s).\n`);
+  }
+
+  let result: CompletionOutput = {
+    content: "",
+    model: null,
+    usage: undefined,
+    timedOut: false,
+    failureMessage: "OpenAI-compatible completion did not run.",
+    toolCalls: [],
+  };
+  const maxToolRounds = 8;
+  for (let round = 0; round < maxToolRounds; round++) {
+    result = await requestCompletion({
+      baseUrl,
+      apiKey,
+      headers,
+      model,
+      messages,
+      temperature,
+      maxTokens,
+      timeoutSec,
+      maxRetries,
+      tools,
+      onStderr: (line) => onLog("stderr", `${line}\n`),
+    });
+    if (result.toolCalls.length > 0 && tools.length === 0) {
+      result = {
+        ...result,
+        content: "",
+        toolCalls: [],
+        failureMessage:
+          "The provider returned structured tool calls, but no Paperclip MCP gateway tools were discovered. " +
+          "Configure an active governed MCP gateway or use a text-only response.",
+      };
+      break;
+    }
+    if (result.toolCalls.length === 0) break;
+    if (round === maxToolRounds - 1) {
+      result = {
+        ...result,
+        content: "",
+        toolCalls: [],
+        failureMessage: "The model exceeded the maximum Paperclip MCP tool-call rounds.",
+      };
+      break;
+    }
+    messages.push({
+      role: "assistant",
+      content: result.content,
+      tool_calls: result.toolCalls,
+    });
+    for (const call of result.toolCalls) {
+      const route = toolRoutes.get(call.function.name);
+      let content = "Tool call rejected: the tool is not available through the Paperclip MCP gateway.";
+      if (route) {
+        try {
+          content = await callGatewayTool(route, call);
+        } catch (error) {
+          content = `Tool call failed: ${error instanceof Error ? error.message : "Paperclip gateway request failed."}`;
+        }
+      }
+      messages.push({ role: "tool", tool_call_id: call.id, content });
+    }
+  }
 
   if (result.timedOut) {
     return {

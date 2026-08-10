@@ -578,6 +578,11 @@ describeEmbeddedPostgres("tool gateway acceptance", () => {
       expect(token.tokenPrefix).toMatch(/^pcgw_[a-f0-9]{8}$/);
 
       const app = createGatewayRouteApp(db, gateway);
+      await request(app)
+        .post(`/api/tool-gateway/gateways/${created.id}/mcp`)
+        .set("authorization", `Bearer ${token.token}`)
+        .send({ jsonrpc: "2.0", method: "notifications/initialized" })
+        .expect(202);
       const listed = await request(app)
         .post(`/api/tool-gateway/gateways/${created.id}/mcp`)
         .set("authorization", `Bearer ${token.token}`)
@@ -586,6 +591,13 @@ describeEmbeddedPostgres("tool gateway acceptance", () => {
       const visibleToolNames = listed.body.result.tools.map((tool: { name: string }) => tool.name);
       expect(visibleToolNames).toContain(gatewayToolName);
       expect(visibleToolNames).not.toContain("mcp-remote-fixture:update_note");
+
+      const invalidInitialized = await request(app)
+        .post(`/api/tool-gateway/gateways/${created.id}/mcp`)
+        .set("authorization", "Bearer pcgw_invalid")
+        .send({ jsonrpc: "2.0", method: "notifications/initialized" })
+        .expect(401);
+      expect(invalidInitialized.body.error.data.reasonCode).toBe("gateway_token_invalid");
 
       const called = await request(app)
         .post(`/api/tool-gateway/gateways/${created.id}/mcp`)
