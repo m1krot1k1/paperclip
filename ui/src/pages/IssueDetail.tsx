@@ -1062,7 +1062,7 @@ const IssueDetailChatTab = memo(function IssueDetailChatTab({
   externalReferences,
   linkCaseReferences,
 }: IssueDetailChatTabProps) {
-  useTranslation();
+  const { t } = useTranslation();
   // Seam for the Task Chat Redesign (flag: enableTaskChatRedesign). Flag OFF
   // renders IssueChatThread verbatim — the flag-off branch is provably today's
   // UI. Both components share one prop type, so no cast is needed.
@@ -1358,7 +1358,7 @@ function IssueDetailActivityTab({
   handoffFocusSignal = 0,
   externalReferences,
 }: IssueDetailActivityTabProps) {
-  useTranslation();
+  const { t } = useTranslation();
   const { data: activity, isLoading: activityLoading } = useQuery({
     queryKey: queryKeys.issues.activity(issueId),
     queryFn: () => activityApi.forIssue(issueId),
