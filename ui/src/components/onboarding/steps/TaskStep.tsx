@@ -7,6 +7,7 @@ import { ChoiceCard, OnboardingCard, OnboardingHeading, Stepper } from "../Onboa
 import { FooterNav } from "../FooterNav";
 import { AgentPreview } from "../AgentPreview";
 import { capsuleHeroMotion, STEP_EASE } from "../onboarding-motion";
+import { t } from "@/i18n";
 
 /** Assign-the-first-task step: three choice cards + a custom-task reveal. */
 export function TaskStep({
@@ -37,7 +38,7 @@ export function TaskStep({
   total?: number;
 }) {
   // Sentence-initial in the lede, so the fallback is capitalized.
-  const agentLabel = agentName || agentRole || "Your agent";
+  const agentLabel = agentName || agentRole || t("onboarding.task.yourAgent");
   return (
     <OnboardingCard>
       <Stepper step={step} total={total} />
@@ -57,8 +58,8 @@ export function TaskStep({
           <AgentPreview agentName={agentName} agentRole={agentRole} />
         </div>
         <OnboardingHeading
-          title="Assign your agent a first task"
-          lede={<>Where should we start? {agentLabel} is ready for instructions.</>}
+          title={t("onboarding.task.title")}
+          lede={t("onboarding.task.lede", { agent: agentLabel })}
           center
         />
         {/* The reveal sits OUTSIDE the gap-3 flex and owns its own top spacing
@@ -70,22 +71,22 @@ export function TaskStep({
           <div className="flex flex-col gap-3">
             <ChoiceCard
               icon={<UserPlus className="size-5" />}
-              title="Create a hiring plan"
-              description="A staffing plan for the agents your team needs — roles, order, and what each one owns."
+              title={t("onboarding.task.hiringTitle")}
+              description={t("onboarding.task.hiringDescription")}
               selected={taskChoice === "hiring"}
               onClick={() => onSelectChoice("hiring")}
             />
             <ChoiceCard
               icon={<Building2 className="size-5" />}
-              title="Write a team strategy doc"
-              description="Turn your mission into a one-page strategy: goals, bets, and how you'll measure them."
+              title={t("onboarding.task.strategyTitle")}
+              description={t("onboarding.task.strategyDescription")}
               selected={taskChoice === "strategy"}
               onClick={() => onSelectChoice("strategy")}
             />
             <ChoiceCard
               icon={<Pencil className="size-5" />}
-              title="Write your own task…"
-              description="Describe anything else you want done first."
+              title={t("onboarding.task.customTitle")}
+              description={t("onboarding.task.customDescription")}
               selected={taskChoice === "custom"}
               onClick={() => onSelectChoice("custom")}
             />
@@ -107,7 +108,7 @@ export function TaskStep({
                   <Textarea
                     autoFocus
                     className="min-h-(--sz-88px)"
-                    placeholder="Describe the first task…"
+                    placeholder={t("onboarding.task.customPlaceholder")}
                     value={customTask}
                     onChange={(e) => onCustomTaskChange(e.target.value)}
                   />
@@ -119,10 +120,10 @@ export function TaskStep({
         {error ? <p className="text-xs text-destructive">{error}</p> : null}
         <FooterNav
           onBack={onBack}
-          primaryLabel="Get started"
+          primaryLabel={t("onboarding.task.getStarted")}
           primaryDisabled={!taskChoice || (taskChoice === "custom" && !customTask.trim())}
           loading={loading}
-          loadingLabel="Launching..."
+          loadingLabel={t("onboarding.task.launching")}
           onPrimary={onGetStarted}
         />
       </div>

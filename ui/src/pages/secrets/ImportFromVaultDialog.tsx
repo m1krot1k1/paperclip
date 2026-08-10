@@ -51,6 +51,7 @@ import {
 } from "@/components/ui/select";
 import { EmptyState } from "../../components/EmptyState";
 import { cn } from "../../lib/utils";
+import i18n from "../../i18n";
 
 type Step = "select" | "review" | "result";
 
@@ -115,12 +116,12 @@ function statusToneClasses(status: RemoteSecretImportCandidate["status"]) {
 function statusBadgeLabel(status: RemoteSecretImportCandidate["status"]) {
   switch (status) {
     case "duplicate":
-      return "Imported";
+      return i18n.t("secretImport.imported");
     case "conflict":
-      return "Conflict";
+      return i18n.t("secretImport.conflict");
     case "ready":
     default:
-      return "Ready";
+      return i18n.t("secretImport.ready");
   }
 }
 
@@ -151,7 +152,7 @@ function RowResultBadge({ status }: { status: RemoteSecretImportRowResult["statu
           variant="outline"
           className="gap-1 px-1.5 py-0 font-normal text-emerald-600 border-emerald-500/40 dark:text-emerald-400"
         >
-          <CheckCircle2 className="h-3 w-3" /> Created
+          <CheckCircle2 className="h-3 w-3" /> {i18n.t("secretImport.created")}
         </Badge>
       );
     case "skipped":
@@ -160,7 +161,7 @@ function RowResultBadge({ status }: { status: RemoteSecretImportRowResult["statu
           variant="outline"
           className="gap-1 px-1.5 py-0 font-normal text-muted-foreground border-border/60"
         >
-          <Link2 className="h-3 w-3" /> Skipped
+          <Link2 className="h-3 w-3" /> {i18n.t("secretImport.skipped")}
         </Badge>
       );
     case "error":
@@ -170,7 +171,7 @@ function RowResultBadge({ status }: { status: RemoteSecretImportRowResult["statu
           variant="outline"
           className="gap-1 px-1.5 py-0 font-normal text-destructive border-destructive/40"
         >
-          <XCircle className="h-3 w-3" /> Failed
+          <XCircle className="h-3 w-3" /> {i18n.t("secretImport.failed")}
         </Badge>
       );
   }
@@ -270,34 +271,34 @@ function validateDraftRow(
   existing: CompanySecret[],
   otherDrafts: DraftSelection[],
 ): string | null {
-  if (!draft.name.trim()) return "Name is required.";
-  if (draft.name.length > 160) return "Name must be 160 characters or fewer.";
-  if (!draft.key.trim()) return "Key is required.";
+  if (!draft.name.trim()) return i18n.t("secretImport.nameRequired");
+  if (draft.name.length > 160) return i18n.t("secretImport.nameMax");
+  if (!draft.key.trim()) return i18n.t("secretImport.keyRequired");
   if (!KEY_PATTERN.test(draft.key)) {
-    return "Key may only contain lowercase letters, numbers, dot, underscore, or hyphen.";
+    return i18n.t("secretImport.keyPattern");
   }
-  if (draft.key.length > 120) return "Key must be 120 characters or fewer.";
-  if (draft.description.length > 500) return "Description must be 500 characters or fewer.";
+  if (draft.key.length > 120) return i18n.t("secretImport.keyMax");
+  if (draft.description.length > 500) return i18n.t("secretImport.descriptionMax");
 
   const lowerName = draft.name.trim().toLowerCase();
   const lowerKey = draft.key.trim().toLowerCase();
 
   for (const existingSecret of existing) {
     if (existingSecret.name.trim().toLowerCase() === lowerName) {
-      return "A Paperclip secret already uses this name.";
+      return i18n.t("secretImport.duplicateName");
     }
     if (existingSecret.key.trim().toLowerCase() === lowerKey) {
-      return "A Paperclip secret already uses this key.";
+      return i18n.t("secretImport.duplicateKey");
     }
   }
 
   for (const other of otherDrafts) {
     if (other === draft) continue;
     if (other.name.trim().toLowerCase() === lowerName) {
-      return "Another row in this batch already uses this name.";
+      return i18n.t("secretImport.batchDuplicateName");
     }
     if (other.key.trim().toLowerCase() === lowerKey) {
-      return "Another row in this batch already uses this key.";
+      return i18n.t("secretImport.batchDuplicateKey");
     }
   }
 
@@ -477,21 +478,25 @@ export function ImportFromVaultDialog({
         awsVaults.find((vault) => vault.id === vaultId)?.displayName ?? "AWS";
       if (result.errorCount === draftList.length && result.errorCount > 0) {
         toast.pushToast({
-          title: "Import failed",
-          body: `No secrets were imported from ${vaultName}.`,
+          title: i18n.t("secretImport.importFailed"),
+          body: i18n.t("secretImport.noSecretsImported", { vault: vaultName }),
           tone: "error",
         });
       } else {
         toast.pushToast({
-          title: result.errorCount > 0 ? "Import completed with errors" : "Import complete",
-          body: `${result.importedCount} created · ${result.skippedCount} skipped · ${result.errorCount} failed`,
+          title: result.errorCount > 0 ? i18n.t("secretImport.importCompleteWithErrors") : i18n.t("secretImport.importComplete"),
+          body: i18n.t("secretImport.importCounts", {
+            imported: result.importedCount,
+            skipped: result.skippedCount,
+            failed: result.errorCount,
+          }),
           tone: result.errorCount > 0 ? "warn" : "success",
         });
       }
     },
     onError: (error) => {
       toast.pushToast({
-        title: "Import failed",
+        title: i18n.t("secretImport.importFailed"),
         body: readableErrorMessage(error),
         tone: "error",
       });
@@ -552,7 +557,7 @@ export function ImportFromVaultDialog({
       })
       .catch((error) => {
         toast.pushToast({
-          title: "Could not load more results",
+          title: i18n.t("secretImport.couldNotLoadMore"),
           body: readableErrorMessage(error),
           tone: "error",
         });
@@ -614,7 +619,10 @@ export function ImportFromVaultDialog({
     if (importMutation.isPending) return;
     if (!force && step !== "result" && selection.size > 0 && !importResult) {
       const ok = window.confirm(
-        `Discard ${selection.size} pending import${selection.size === 1 ? "" : "s"}?`,
+        i18n.t("secretImport.discardPending", {
+          count: selection.size,
+          suffix: selection.size === 1 ? "" : "s",
+        }),
       );
       if (!ok) return;
     }
@@ -666,7 +674,7 @@ export function ImportFromVaultDialog({
             type="button"
             className="rounded-sm text-muted-foreground transition-opacity hover:opacity-100 opacity-70"
             onClick={() => handleClose()}
-            aria-label="Close import dialog"
+            aria-label={i18n.t("secretImport.close")}
           >
             <X className="h-4 w-4" />
           </button>
@@ -767,7 +775,7 @@ export function ImportFromVaultDialog({
                     <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Importing…
                   </>
                 ) : (
-                  `Import ${draftList.length}`
+                  i18n.t("secretImport.importSelected", { count: draftList.length })
                 )}
               </Button>
             )}
@@ -785,9 +793,9 @@ export function ImportFromVaultDialog({
 
 function Stepper({ step }: { step: Step }) {
   const steps: { id: Step; label: string }[] = [
-    { id: "select", label: "Select" },
-    { id: "review", label: "Review" },
-    { id: "result", label: "Result" },
+    { id: "select", label: i18n.t("secretImport.select") },
+    { id: "review", label: i18n.t("secretImport.review") },
+    { id: "result", label: i18n.t("secretImport.result") },
   ];
   const activeIndex = steps.findIndex((s) => s.id === step);
   return (
@@ -884,8 +892,8 @@ function SelectStep(props: SelectStepProps) {
       <div className="flex min-h-0 flex-1 items-center justify-center p-6" data-testid="select-empty-vaults">
         <EmptyState
           icon={Cloud}
-          message="No AWS provider vault configured. Add one to import secrets."
-          action={onManageVaults ? "Manage vaults" : undefined}
+          message={i18n.t("secretImport.noVault")}
+          action={onManageVaults ? i18n.t("secretImport.manageVaults") : undefined}
           onAction={onManageVaults}
         />
       </div>
@@ -897,7 +905,7 @@ function SelectStep(props: SelectStepProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex flex-wrap items-center gap-2 border-b border-border/60 px-5 py-3">
-        <label className="text-xs uppercase tracking-wide text-muted-foreground">Vault</label>
+        <label className="text-xs uppercase tracking-wide text-muted-foreground">{i18n.t("secretImport.vault")}</label>
         {awsVaults.length === 1 && eligible.length === 1 ? (
           <span className="text-xs font-medium" data-testid="vault-static-label">
             {eligible[0].displayName}
@@ -907,8 +915,8 @@ function SelectStep(props: SelectStepProps) {
             value={vaultId ?? undefined}
             onValueChange={onVaultChange}
           >
-            <SelectTrigger size="sm" className="text-xs" aria-label="Select AWS vault">
-              <SelectValue placeholder="Select an AWS vault" />
+            <SelectTrigger size="sm" className="text-xs" aria-label={i18n.t("secretImport.selectVault")}>
+              <SelectValue placeholder={i18n.t("secretImport.selectVaultPlaceholder")} />
             </SelectTrigger>
             <SelectContent>
               {awsVaults.map((vault) => {
@@ -946,9 +954,9 @@ function SelectStep(props: SelectStepProps) {
           <Input
             value={searchInput}
             onChange={(event) => onSearchInput(event.target.value)}
-            placeholder="Search by name, ARN, tag"
+            placeholder={i18n.t("secretImport.searchPlaceholder")}
             className="pl-7 pr-7 text-xs"
-            aria-label="Search remote secrets"
+            aria-label={i18n.t("secretImport.search")}
             data-testid="vault-search"
           />
           {showSearchSpinner && (
@@ -961,7 +969,7 @@ function SelectStep(props: SelectStepProps) {
           size="sm"
           onClick={onRefresh}
           disabled={previewLoading || !vaultId}
-          aria-label="Refresh remote secrets"
+          aria-label={i18n.t("secretImport.refresh")}
         >
           <RefreshCw className={cn("h-3.5 w-3.5", previewLoading && "animate-spin")} />
         </Button>
@@ -978,7 +986,7 @@ function SelectStep(props: SelectStepProps) {
             className="h-6 px-2 text-xs"
             onClick={() => onShowOnlySelectedChange(!showOnlySelected)}
           >
-            {showOnlySelected ? "Show all" : "Show selected"}
+            {showOnlySelected ? i18n.t("secretImport.showAll") : i18n.t("secretImport.showSelected")}
           </Button>
         </div>
       )}
@@ -998,15 +1006,15 @@ function SelectStep(props: SelectStepProps) {
                   <Checkbox
                     checked={headerCheckboxState}
                     onCheckedChange={() => toggleAllLoaded()}
-                    aria-label={`Select all loaded (${selectableInLoaded.length})`}
+                        aria-label={i18n.t("secretImport.selectAllLoaded", { count: selectableInLoaded.length })}
                     disabled={selectableInLoaded.length === 0}
                   />
                 </th>
-                <th className="px-2 py-2 text-left font-medium">Remote name</th>
-                <th className="px-2 py-2 text-left font-medium">Reference</th>
-                <th className="px-2 py-2 text-left font-medium">Last changed</th>
-                <th className="px-2 py-2 text-left font-medium">Suggested name</th>
-                <th className="px-2 py-2 text-left font-medium">State</th>
+                <th className="px-2 py-2 text-left font-medium">{i18n.t("secretImport.remoteName")}</th>
+                <th className="px-2 py-2 text-left font-medium">{i18n.t("secretImport.reference")}</th>
+                <th className="px-2 py-2 text-left font-medium">{i18n.t("secretImport.lastChanged")}</th>
+                <th className="px-2 py-2 text-left font-medium">{i18n.t("secretImport.suggestedName")}</th>
+                <th className="px-2 py-2 text-left font-medium">{i18n.t("secretImport.state")}</th>
               </tr>
             </thead>
             <tbody data-testid="vault-table-body">
@@ -1038,7 +1046,7 @@ function SelectStep(props: SelectStepProps) {
                         checked={isSelected}
                         onCheckedChange={() => toggleRow(candidate)}
                         disabled={!candidate.importable}
-                        aria-label={`Select ${candidate.remoteName}`}
+                          aria-label={i18n.t("secretImport.selectRemote", { name: candidate.remoteName })}
                       />
                     </td>
                     <td className="px-2 py-2.5">
@@ -1091,7 +1099,7 @@ function SelectStep(props: SelectStepProps) {
             <span>
               {candidates.length} loaded
               {selectableInLoaded.length > 0 && (
-                <span> · {selectableInLoaded.length} selectable</span>
+                <span> · {i18n.t("secretImport.selectable", { count: selectableInLoaded.length })}</span>
               )}
             </span>
             <Button
@@ -1106,7 +1114,7 @@ function SelectStep(props: SelectStepProps) {
                   <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Loading…
                 </>
               ) : (
-                `Load ${PAGE_SIZE} more`
+                i18n.t("secretImport.loadMore", { count: PAGE_SIZE })
               )}
             </Button>
           </div>
@@ -1130,19 +1138,19 @@ function PreviewErrorBanner({ error, onRetry }: { error: unknown; onRetry: () =>
       <div className="flex-1">
         <div className="font-medium">
           {isPermission
-            ? "AWS denied list access"
+            ? i18n.t("secretImport.awsDenied")
             : isThrottling
-              ? "AWS throttled the listing request"
-              : "Could not load remote secrets"}
+              ? i18n.t("secretImport.awsThrottled")
+              : i18n.t("secretImport.couldNotLoadRemote")}
         </div>
         <div className="mt-1 text-xs leading-relaxed text-destructive/80">
           {isPermission
-            ? "The AWS principal behind this vault is missing secretsmanager:ListSecrets. Update IAM and try again."
+            ? i18n.t("secretImport.awsPermissionHelp")
             : message}
         </div>
         <div className="mt-2 flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={onRetry}>
-            <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Retry
+            <Button variant="outline" size="sm" onClick={onRetry}>
+            <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> {i18n.t("common.retry")}
           </Button>
           {isPermission && (
             <a
@@ -1175,14 +1183,14 @@ function EmptyCandidates({ query }: { query: string }) {
     return (
       <EmptyState
         icon={Search}
-        message={`No remote secrets match "${query}".`}
+        message={i18n.t("secretImport.noRemoteMatches", { query })}
       />
     );
   }
   return (
     <EmptyState
       icon={Database}
-      message="No secrets visible to this vault."
+      message={i18n.t("secretImport.noVisibleSecrets")}
     />
   );
 }
@@ -1201,7 +1209,7 @@ function ReviewStep({ drafts, reviewErrors, updateDraft, removeDraft, importing 
       <div className="flex min-h-0 flex-1 items-center justify-center p-6">
         <EmptyState
           icon={Info}
-          message="No secrets selected. Go back to pick remote secrets to import."
+          message={i18n.t("secretImport.noSelectedSecrets")}
         />
       </div>
     );
@@ -1245,7 +1253,7 @@ function ReviewStep({ drafts, reviewErrors, updateDraft, removeDraft, importing 
                   </div>
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                     <label className="flex flex-col gap-1 text-xs">
-                      <span className="text-muted-foreground">Paperclip name</span>
+                      <span className="text-muted-foreground">{i18n.t("secretImport.paperclipName")}</span>
                       <Input
                         value={draft.name}
                         onChange={(e) =>
@@ -1258,7 +1266,7 @@ function ReviewStep({ drafts, reviewErrors, updateDraft, removeDraft, importing 
                       />
                     </label>
                     <label className="flex flex-col gap-1 text-xs">
-                      <span className="text-muted-foreground">Key</span>
+                      <span className="text-muted-foreground">{i18n.t("secretImport.key")}</span>
                       <Input
                         value={draft.key}
                         onChange={(e) =>
@@ -1276,7 +1284,7 @@ function ReviewStep({ drafts, reviewErrors, updateDraft, removeDraft, importing 
                       />
                     </label>
                     <label className="flex flex-col gap-1 text-xs">
-                      <span className="text-muted-foreground">Description (optional)</span>
+                      <span className="text-muted-foreground">{i18n.t("secretImport.descriptionOptional")}</span>
                       <Input
                         value={draft.description}
                         onChange={(e) =>
@@ -1346,30 +1354,30 @@ function ResultStep({ result, draftList }: ResultStepProps) {
 
   const heading =
     result.errorCount === result.results.length && result.errorCount > 0
-      ? "Import failed"
+      ? i18n.t("secretImport.importFailed")
       : result.errorCount === 0 && result.skippedCount === 0
-        ? `All ${result.importedCount} secrets imported`
-        : "Import complete";
+        ? i18n.t("secretImport.allImported", { count: result.importedCount })
+        : i18n.t("secretImport.importComplete");
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="border-b border-border/60 px-5 py-3" data-testid="result-summary">
         <h3 className="text-sm font-semibold">{heading}</h3>
         <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-          <span className="text-emerald-600 dark:text-emerald-400">✓ {result.importedCount} created</span>
-          <span>⊘ {result.skippedCount} skipped</span>
-          <span className="text-destructive">⨯ {result.errorCount} failed</span>
+          <span className="text-emerald-600 dark:text-emerald-400">✓ {result.importedCount} {i18n.t("secretImport.created").toLowerCase()}</span>
+          <span>⊘ {result.skippedCount} {i18n.t("secretImport.skipped").toLowerCase()}</span>
+          <span className="text-destructive">⨯ {result.errorCount} {i18n.t("secretImport.failed").toLowerCase()}</span>
         </div>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
         {grouped.created.length > 0 && (
-          <ResultGroup label="Created" rows={grouped.created} draftLookup={draftLookup} />
+          <ResultGroup label={i18n.t("secretImport.created")} rows={grouped.created} draftLookup={draftLookup} />
         )}
         {grouped.skipped.length > 0 && (
-          <ResultGroup label="Skipped" rows={grouped.skipped} draftLookup={draftLookup} />
+          <ResultGroup label={i18n.t("secretImport.skipped")} rows={grouped.skipped} draftLookup={draftLookup} />
         )}
         {grouped.failed.length > 0 && (
-          <ResultGroup label="Failed" rows={grouped.failed} draftLookup={draftLookup} />
+          <ResultGroup label={i18n.t("secretImport.failed")} rows={grouped.failed} draftLookup={draftLookup} />
         )}
       </div>
     </div>
@@ -1455,7 +1463,7 @@ function FooterStatus({
     return (
       <div className="text-xs text-muted-foreground">
         {totalSelected === 0
-          ? "Select remote secrets to import"
+          ? i18n.t("secretImport.selectRemoteToImport")
           : `${totalSelected} selected`}
       </div>
     );

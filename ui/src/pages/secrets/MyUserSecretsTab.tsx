@@ -16,6 +16,7 @@ import {
   myValueState,
   myValueTone,
 } from "./my-value-state";
+import { useTranslation } from "../../i18n";
 
 /**
  * Secrets → My secrets tab. Lists every company user-secret definition paired
@@ -27,6 +28,7 @@ export function MyUserSecretsTab({ companyId }: { companyId: string }) {
   const queryClient = useQueryClient();
   const { pushToast } = useToastActions();
   const [dialogFor, setDialogFor] = useState<MyUserSecretEntry | null>(null);
+  const { t } = useTranslation();
 
   const mySecretsQuery = useQuery({
     queryKey: queryKeys.secrets.myUserSecrets(companyId),
@@ -38,11 +40,11 @@ export function MyUserSecretsTab({ companyId }: { companyId: string }) {
     mutationFn: (secret: CompanySecret) => secretsApi.removeMyUserSecret(companyId, secret.id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.secrets.myUserSecrets(companyId) });
-      pushToast({ title: "Value cleared", tone: "info" });
+      pushToast({ title: t("secrets.valueCleared"), tone: "info" });
     },
     onError: (err) =>
       pushToast({
-        title: "Could not clear value",
+        title: t("secrets.couldNotClearValue"),
         body: err instanceof Error ? err.message : undefined,
         tone: "error",
       }),
@@ -57,13 +59,10 @@ export function MyUserSecretsTab({ companyId }: { companyId: string }) {
       <div className="flex items-start gap-2 rounded-md border border-violet-500/30 bg-violet-500/5 px-4 py-3 text-xs text-violet-800 dark:text-violet-200">
         <UserRound className="h-4 w-4 mt-0.5 shrink-0" />
         <p>
-          These are credentials only you provide. Each value is yours alone — used when you are the
-          user responsible for a run — and is never shown back to anyone, including admins.
+          {t("secrets.mySecretsDescription")}
           {missingCount > 0 ? (
             <span className="font-medium">
-              {" "}
-              {missingCount} required secret{missingCount === 1 ? " still needs" : "s still need"} your
-              value.
+              {" "}{t(missingCount === 1 ? "secrets.requiredSecretMissing" : "secrets.requiredSecretsMissing", { count: missingCount })}
             </span>
           ) : null}
         </p>
@@ -81,7 +80,7 @@ export function MyUserSecretsTab({ companyId }: { companyId: string }) {
         ) : entries.length === 0 && !mySecretsQuery.isPending ? (
           <EmptyState
             icon={KeyRound}
-            message="No user secrets are defined for this company yet. An admin defines which credentials each member supplies."
+            message={t("secrets.noUserSecrets")}
           />
         ) : (
           <ul className="space-y-2">
@@ -161,7 +160,7 @@ function MyUserSecretRow({
         </Badge>
         {!disabledDefinition ? (
           <Button size="sm" variant={secret ? "outline" : "default"} onClick={onSet}>
-            {secret ? "Update" : "Set value"}
+            {secret ? t("secrets.update") : t("secrets.setValue")}
           </Button>
         ) : null}
         {secret ? (
@@ -171,7 +170,7 @@ function MyUserSecretRow({
             className="text-muted-foreground hover:text-destructive"
             onClick={onClear}
             disabled={clearing}
-            title="Clear my value"
+            title={t("secrets.clearMyValue")}
           >
             <Trash2 className="h-3.5 w-3.5" />
           </Button>

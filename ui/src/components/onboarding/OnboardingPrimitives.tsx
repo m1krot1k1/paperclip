@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ConnectorOption } from "./onboarding-data";
+import { t } from "@/i18n";
 
 /**
  * The centered card frame every onboarding step sits in.
@@ -70,7 +71,7 @@ export function Stepper({ step, total = 3 }: { step: number; total?: number }) {
         ))}
       </div>
       <span className="text-(length:--text-micro) font-medium uppercase tracking-widest text-muted-foreground">
-        Step {step} of {total}
+        {t("onboarding.stepper", { step, total })}
       </span>
     </div>
   );

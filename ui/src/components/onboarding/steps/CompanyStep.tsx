@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { MISSION_CHIPS } from "../onboarding-data";
 import { Chip, OnboardingCard, OnboardingHeading, Stepper } from "../OnboardingPrimitives";
 import { FooterNav } from "../FooterNav";
+import { t } from "@/i18n";
 
 /** Company name + mission step. */
 export function CompanyStep({
@@ -34,25 +35,25 @@ export function CompanyStep({
       <Stepper step={step} total={total} />
       <div className="space-y-6">
         <OnboardingHeading
-          title="What is the name of your company or team?"
-          lede="This will be the name of your Paperclip organization — choose something your team will recognize."
+          title={t("onboarding.company.title")}
+          lede={t("onboarding.company.description")}
         />
         <div className="flex flex-col gap-2">
-          <Label htmlFor="onboarding-company-name">Name</Label>
+          <Label htmlFor="onboarding-company-name">{t("onboarding.company.name")}</Label>
           <Input
             id="onboarding-company-name"
-            placeholder="e.g. Northwind Labs"
+            placeholder={t("onboarding.company.namePlaceholder")}
             value={companyName}
             onChange={(e) => onCompanyNameChange(e.target.value)}
             autoFocus
           />
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="onboarding-mission">What is the mission?</Label>
+          <Label htmlFor="onboarding-mission">{t("onboarding.company.mission")}</Label>
           <Textarea
             id="onboarding-mission"
             className="min-h-(--sz-88px)"
-            placeholder="This could be your company mission, team goal, or desired outcome."
+            placeholder={t("onboarding.company.missionPlaceholder")}
             value={mission}
             onChange={(e) => {
               onMissionChange(e.target.value);
@@ -75,10 +76,10 @@ export function CompanyStep({
         </div>
         <FooterNav
           onBack={onBack}
-          primaryLabel="Next"
+          primaryLabel={t("common.next")}
           primaryDisabled={!companyName.trim() || !mission.trim()}
           loading={loading}
-          loadingLabel="Creating..."
+          loadingLabel={t("onboarding.agent.creating")}
           onPrimary={onNext}
         />
       </div>

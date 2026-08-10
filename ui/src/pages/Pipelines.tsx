@@ -127,6 +127,8 @@ import { extractIssueTimelineEvents } from "../lib/issue-timeline-events";
 import { applyLocalQueuedIssueCommentState, isQueuedIssueComment } from "../lib/optimistic-issue-comments";
 import type { IssueChatComment } from "../lib/issue-chat-messages";
 import { Badge } from "@/components/ui/badge";
+import { useTranslation } from "../i18n";
+import i18n from "../i18n";
 
 type PipelineConversationActionableInteraction =
   | SuggestTasksInteraction
@@ -213,15 +215,15 @@ export function plainBatchError(result: Extract<PipelineBatchIngestResult, { ok:
     return `${details.label} needs one of the available choices.`;
   }
   if (details.code === "duplicate_batch_key") {
-    return "This item duplicates another row.";
+    return i18n.t("pipelines.duplicateRow", { defaultValue: "This item duplicates another row." });
   }
   if (details.code === "blocker_cycle") {
-    return "This item waits on another row that also waits on it.";
+    return i18n.t("pipelines.blockerCycle", { defaultValue: "This item waits on another row that also waits on it." });
   }
   if (typeof result.error?.message === "string" && result.error.message.trim()) {
     return result.error.message.replace(/^Pipeline\s+/i, "");
   }
-  return "This item needs attention before it can be submitted.";
+  return i18n.t("pipelines.needsAttention", { defaultValue: "This item needs attention before it can be submitted." });
 }
 
 function itemCountLabel(count: number) {
@@ -337,9 +339,12 @@ function retryCleanupFromIds(ids: Set<string>): PipelineAutomationRetryCleanupOp
 function retryPrimaryActionLabel(plan: PipelineAutomationRetryPlan) {
   const retiredOutputCount = plan.effectCounts.directChildren + plan.effectCounts.descendants;
   if (retiredOutputCount > 0 && (plan.defaultCleanup.retireDirectChildren || plan.defaultCleanup.retireDescendants)) {
-    return `Retry and retire ${formatNumber(retiredOutputCount)} ${retiredOutputCount === 1 ? "item" : "items"}`;
+    return i18n.t("pipelines.retryRetire", {
+      count: retiredOutputCount,
+      defaultValue: `Retry and retire ${formatNumber(retiredOutputCount)} ${retiredOutputCount === 1 ? "item" : "items"}`,
+    });
   }
-  return plan.scope === "previous_stage" ? "Retry previous step" : "Re-run this step";
+  return plan.scope === "previous_stage" ? i18n.t("pipelines.retry") : i18n.t("pipelines.rerun");
 }
 
 export function Pipelines() {
@@ -430,11 +435,11 @@ type PipelineSortField = "name" | "activity" | "review" | "inMotion" | "openItem
 type PipelineSortDir = "asc" | "desc";
 
 const PIPELINE_SORT_OPTIONS: ReadonlyArray<readonly [PipelineSortField, string]> = [
-  ["name", "Name"],
-  ["activity", "Last activity"],
-  ["review", "Most to review"],
-  ["inMotion", "Most in motion"],
-  ["openItems", "Most open items"],
+  ["name", i18n.t("projects.sortName")],
+  ["activity", i18n.t("pipelines.lastActivity", { defaultValue: "Last activity" })],
+  ["review", i18n.t("pipelines.mostToReview", { defaultValue: "Most to review" })],
+  ["inMotion", i18n.t("pipelines.mostInMotion", { defaultValue: "Most in motion" })],
+  ["openItems", i18n.t("pipelines.mostOpenItems", { defaultValue: "Most open items" })],
 ];
 
 function comparePipelinesBySort(field: PipelineSortField, dir: PipelineSortDir) {
@@ -563,15 +568,15 @@ export function buildPipelineTableRows(
 }
 
 function formatOpenItems(count: number) {
-  return `${formatNumber(count)} open`;
+  return `${formatNumber(count)} ${i18n.t("pipelines.open")}`;
 }
 
 function formatPipelineActivity(value: string | Date | null) {
-  if (!value) return "No activity";
+  if (!value) return i18n.t("pipelines.noActivity");
   const then = new Date(value).getTime();
-  if (!Number.isFinite(then)) return "No activity";
+  if (!Number.isFinite(then)) return i18n.t("pipelines.noActivity");
   const diffSeconds = Math.max(0, Math.round((Date.now() - then) / 1000));
-  if (diffSeconds < 60) return "just now";
+  if (diffSeconds < 60) return i18n.t("pipelines.justNow");
   const diffMinutes = Math.round(diffSeconds / 60);
   if (diffMinutes < 60) return `${diffMinutes} min ago`;
   const diffHours = Math.round(diffMinutes / 60);
@@ -595,7 +600,7 @@ function PipelineStatusChip({ archivedAt }: { archivedAt: Date | string | null }
           : "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300",
       )}
     >
-      {paused ? "Paused" : "Active"}
+      {paused ? i18n.t("pipelines.paused") : i18n.t("pipelines.active")}
     </Badge>
   );
 }
@@ -617,6 +622,7 @@ export function PipelinesIndexTable({
   search,
   onSearchChange,
 }: PipelinesIndexTableProps) {
+  const { t } = useTranslation();
   const [collapsedPipelineIds, setCollapsedPipelineIds] = useState<Set<string>>(() => new Set());
   const [sortField, setSortField] = useState<PipelineSortField>("name");
   const [sortDir, setSortDir] = useState<PipelineSortDir>("asc");
@@ -661,12 +667,12 @@ export function PipelinesIndexTable({
     <div className="space-y-4">
       <div className="flex flex-col gap-3 border-y border-border py-4 lg:flex-row lg:items-center lg:justify-between">
         <label className="relative block w-full max-w-md">
-          <span className="sr-only">Search pipelines</span>
+          <span className="sr-only">{t("pipelines.search")}</span>
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
-            placeholder="Search pipelines"
+            placeholder={t("pipelines.search")}
             className="h-10 pl-9"
           />
         </label>
@@ -682,7 +688,7 @@ export function PipelinesIndexTable({
               )}
               disabled={!connectionsAvailable}
               onClick={() => onViewModeChange("nested")}
-              title="Nested view"
+              title={i18n.t("pipelines.nestedView", { defaultValue: "Nested view" })}
             >
               <ListTree className="h-3.5 w-3.5" />
             </button>
@@ -695,7 +701,7 @@ export function PipelinesIndexTable({
                   : "text-muted-foreground hover:text-foreground",
               )}
               onClick={() => onViewModeChange("flat")}
-              title="Flat list"
+              title={i18n.t("pipelines.flatList", { defaultValue: "Flat list" })}
             >
               <List className="h-3.5 w-3.5" />
             </button>
@@ -703,7 +709,7 @@ export function PipelinesIndexTable({
 
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title="Sort">
+              <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title={t("common.sort")}>
                 <ArrowUpDown className="h-3.5 w-3.5" />
               </Button>
             </PopoverTrigger>
@@ -732,17 +738,17 @@ export function PipelinesIndexTable({
       </div>
 
       {rows.length === 0 ? (
-        <EmptyState icon={Hexagon} message="No pipelines match your search." />
+        <EmptyState icon={Hexagon} message={t("pipelines.noMatch")} />
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-(--sz-780px) border-collapse text-sm">
             <thead>
               <tr className="border-b border-border text-left text-(length:--text-micro) font-semibold uppercase tracking-widest text-muted-foreground">
-                <th className="py-2 pl-3 pr-4">Name</th>
-                <th className="px-4 py-2">Attention</th>
-                <th className="px-4 py-2">Open items</th>
-                <th className="px-4 py-2">Status</th>
-                <th className="px-4 py-2">Last activity</th>
+                <th className="py-2 pl-3 pr-4">{i18n.t("pipelines.name")}</th>
+                <th className="px-4 py-2">{i18n.t("pipelines.attention", { defaultValue: "Attention" })}</th>
+                <th className="px-4 py-2">{i18n.t("pipelines.openItems", { defaultValue: "Open items" })}</th>
+                <th className="px-4 py-2">{i18n.t("common.status", { defaultValue: "Status" })}</th>
+                <th className="px-4 py-2">{i18n.t("pipelines.lastActivity")}</th>
               </tr>
             </thead>
             <tbody>
@@ -786,12 +792,12 @@ export function PipelinesIndexTable({
                         {attentionCount > 0 ? (
                           <span className="inline-flex items-center gap-1.5 font-semibold text-red-700 dark:text-red-400">
                             <span className="h-2 w-2 rounded-full bg-red-600" aria-hidden="true" />
-                            {formatNumber(attentionCount)} to review
+                            {formatNumber(attentionCount)} {i18n.t("pipelines.toReview")}
                           </span>
                         ) : null}
                         {inMotionCount > 0 ? (
                           <span className="text-muted-foreground">
-                            {formatNumber(inMotionCount)} in motion
+                            {formatNumber(inMotionCount)} {i18n.t("pipelines.inMotion")}
                           </span>
                         ) : null}
                         {liveDownstreamCount > 0 ? (
@@ -810,8 +816,8 @@ export function PipelinesIndexTable({
               })}
             </tbody>
           </table>
-          <p className="mt-4 text-sm text-muted-foreground">
-            Showing {formatNumber(rows.length)} of {formatNumber(filteredPipelines.length)}.
+                  <p className="mt-4 text-sm text-muted-foreground">
+            {i18n.t("pipelines.showing", { shown: formatNumber(rows.length), total: formatNumber(filteredPipelines.length) })}
           </p>
         </div>
       )}
@@ -854,16 +860,16 @@ function NewPipelineDialog({
       <DialogContent>
         <form onSubmit={submit} className="space-y-4">
           <DialogHeader>
-            <DialogTitle>New pipeline</DialogTitle>
-            <DialogDescription>Name the pipeline and add a short description.</DialogDescription>
+          <DialogTitle>{i18n.t("pipelines.newPipelineDialog")}</DialogTitle>
+          <DialogDescription>{i18n.t("pipelines.pipelineDialogDescription")}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <label className="block space-y-1.5 text-sm font-medium">
-              <span>Name</span>
+              <span>{i18n.t("pipelines.name")}</span>
               <Input value={name} onChange={(event) => setName(event.target.value)} autoFocus />
             </label>
             <label className="block space-y-1.5 text-sm font-medium">
-              <span>Description</span>
+              <span>{i18n.t("pipelines.description")}</span>
               <Textarea
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
@@ -874,10 +880,10 @@ function NewPipelineDialog({
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={pending}>
-              Cancel
+              {i18n.t("pipelines.cancel")}
             </Button>
             <Button type="submit" disabled={pending || !name.trim()}>
-              {pending ? "Creating..." : "Create pipeline"}
+              {pending ? i18n.t("pipelines.creating") : i18n.t("pipelines.createPipeline")}
             </Button>
           </DialogFooter>
         </form>
@@ -904,8 +910,9 @@ function PipelinesIndex() {
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<PipelineViewMode>("nested");
   const [newPipelineOpen, setNewPipelineOpen] = useState(false);
+  const { t } = useTranslation();
 
-  useEffect(() => setBreadcrumbs([{ label: "Pipelines" }]), [setBreadcrumbs]);
+  useEffect(() => setBreadcrumbs([{ label: t("pipelines.title") }]), [setBreadcrumbs, t]);
 
   const pipelinesQuery = useQuery({
     queryKey: selectedCompanyId ? queryKeys.pipelines.list(selectedCompanyId) : ["pipelines", "missing-company"],
@@ -941,7 +948,7 @@ function PipelinesIndex() {
   });
 
   if (!selectedCompanyId) {
-    return <div className="mx-auto max-w-3xl py-10 text-sm text-muted-foreground">Select a company to view pipelines.</div>;
+    return <div className="mx-auto max-w-3xl py-10 text-sm text-muted-foreground">{t("pipelines.selectCompany")}</div>;
   }
   if (pipelinesQuery.isLoading) return <PageSkeleton />;
 
@@ -953,14 +960,14 @@ function PipelinesIndex() {
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-(--tracking-eyebrow) text-muted-foreground">Work</p>
-          <h1 className="text-2xl font-semibold text-foreground">Pipelines</h1>
+          <h1 className="text-2xl font-semibold text-foreground">{t("pipelines.title")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {formatNumber(pipelines.length)} pipeline{pipelines.length === 1 ? "" : "s"}. Connected ones are grouped from upstream work into downstream work.
           </p>
         </div>
         <Button onClick={() => setNewPipelineOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          New pipeline
+          {t("pipelines.newPipeline")}
         </Button>
       </div>
 
@@ -971,8 +978,8 @@ function PipelinesIndex() {
       {pipelines.length === 0 && !pipelinesQuery.error ? (
         <EmptyState
           icon={Hexagon}
-          message="No pipelines yet."
-          action="New pipeline"
+          message={t("pipelines.noneYet")}
+          action={t("pipelines.newPipeline")}
           onAction={() => setNewPipelineOpen(true)}
         />
       ) : (

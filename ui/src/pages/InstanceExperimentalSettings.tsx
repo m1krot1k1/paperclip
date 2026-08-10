@@ -25,6 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useTranslation } from "@/i18n";
 
 function issueHref(identifier: string | null, issueId: string) {
   if (!identifier) return `/issues/${issueId}`;
@@ -77,10 +78,11 @@ function formatActivationTimestamp(iso: string): string {
 const SHOW_CONFERENCE_ROOM_EXPERIMENTAL_SETTING = false;
 
 function ManagedByCloudBadge() {
+  const { t } = useTranslation();
   return (
     <Badge variant="outline" className="text-muted-foreground">
       <Lock aria-hidden="true" />
-      Managed by Paperclip Cloud
+      {t("instanceSettings.managedByCloud", { defaultValue: "Managed by Paperclip Cloud" })}
     </Badge>
   );
 }
@@ -104,6 +106,7 @@ function ExperimentalToggleCard({
   managed?: ManagedSettingMetadata;
   ariaLabel: string;
 }) {
+  const { t } = useTranslation();
   const isManaged = managed?.managed === true;
   return (
     <Card className="block p-5">
@@ -145,24 +148,28 @@ function RecoveryPreviewDialog({
   onEnableAndRun: () => void;
   isPending: boolean;
 }) {
+  const { t } = useTranslation();
   const count = preview?.recoverableFindings ?? 0;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Confirm auto-recovery</DialogTitle>
+          <DialogTitle>{t("instanceSettings.confirmRecovery", { defaultValue: "Confirm auto-recovery" })}</DialogTitle>
           <DialogDescription>
             {preview
-              ? `${count} recovery ${count === 1 ? "task" : "tasks"} match the last ${preview.lookbackHours} hours.`
-              : "Checking recovery candidates before enabling."}
+              ? t("instanceSettings.recoveryMatch", {
+                count,
+                hours: preview.lookbackHours,
+                defaultValue: `${count} recovery ${count === 1 ? "task" : "tasks"} match the last ${preview.lookbackHours} hours.`,
+              })
+              : t("instanceSettings.checkingRecovery", { defaultValue: "Checking recovery candidates before enabling." })}
           </DialogDescription>
         </DialogHeader>
 
         <div className="max-h-(--sz-calc-36) space-y-3 overflow-y-auto pr-1">
           {preview && preview.items.length === 0 ? (
             <div className="rounded-md border border-border bg-muted/30 px-3 py-4 text-sm text-muted-foreground">
-              No recovery tasks would be created right now. Auto-recovery can still run for future liveness incidents in
-              this window.
+              {t("instanceSettings.noRecoveryTasks", { defaultValue: "No recovery tasks would be created right now. Auto-recovery can still run for future liveness incidents in this window." })}
             </div>
           ) : null}
 
@@ -182,7 +189,7 @@ function RecoveryPreviewDialog({
               <p className="mt-1 text-sm text-foreground">{item.title}</p>
               <p className="mt-1 text-xs text-muted-foreground">{item.reason}</p>
               <div className="mt-2 text-xs text-muted-foreground">
-                Recovery target:{" "}
+            {t("instanceSettings.recoveryTarget", { defaultValue: "Recovery target:" })}{" "}
                 <a
                   href={issueHref(item.recoveryIdentifier, item.recoveryIssueId)}
                   className="text-primary underline-offset-2 hover:underline"
@@ -196,21 +203,24 @@ function RecoveryPreviewDialog({
 
         {preview && preview.skippedOutsideLookback > 0 ? (
           <p className="text-xs text-muted-foreground">
-            {preview.skippedOutsideLookback} current{" "}
-            {preview.skippedOutsideLookback === 1 ? "finding is" : "findings are"} outside the configured lookback and
-            will not be touched.
+            {t("instanceSettings.skippedOutsideLookback", {
+              count: preview.skippedOutsideLookback,
+              defaultValue: `${preview.skippedOutsideLookback} current ${preview.skippedOutsideLookback === 1 ? "finding is" : "findings are"} outside the configured lookback and will not be touched.`,
+            })}
           </p>
         ) : null}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
-            Cancel
+            {t("common.cancel", { defaultValue: "Cancel" })}
           </Button>
           <Button variant="outline" onClick={onEnableOnly} disabled={isPending || !preview}>
-            Enable only
+            {t("instanceSettings.enableOnly", { defaultValue: "Enable only" })}
           </Button>
           <Button onClick={onEnableAndRun} disabled={isPending || !preview}>
-            {count > 0 ? `Enable and create ${count}` : "Enable"}
+            {count > 0
+              ? t("instanceSettings.enableAndCreate", { count, defaultValue: `Enable and create ${count}` })
+              : t("common.enable", { defaultValue: "Enable" })}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -219,6 +229,7 @@ function RecoveryPreviewDialog({
 }
 
 export function InstanceExperimentalSettings() {
+  const { t } = useTranslation();
   const { setBreadcrumbs } = useBreadcrumbs();
   const queryClient = useQueryClient();
   const [actionError, setActionError] = useState<string | null>(null);
@@ -233,11 +244,11 @@ export function InstanceExperimentalSettings() {
 
   useEffect(() => {
     setBreadcrumbs([
-      { label: "Settings", href: "/company/settings" },
-      { label: "Instance settings", href: "/company/settings/instance/general" },
-      { label: "Experimental" },
+      { label: t("nav.settings"), href: "/company/settings" },
+      { label: t("nav.instances"), href: "/company/settings/instance/general" },
+      { label: t("common.experimental") },
     ]);
-  }, [setBreadcrumbs]);
+  }, [setBreadcrumbs, t]);
 
   const experimentalQuery = useQuery({
     queryKey: queryKeys.instance.experimentalSettings,
@@ -278,7 +289,7 @@ export function InstanceExperimentalSettings() {
       if (context?.previousSettings) {
         queryClient.setQueryData(queryKeys.instance.experimentalSettings, context.previousSettings);
       }
-      setActionError(error instanceof Error ? error.message : "Failed to update experimental settings.");
+      setActionError(error instanceof Error ? error.message : t("instanceSettings.updateExperimentalFailed", { defaultValue: "Failed to update experimental settings." }));
     },
   });
 
@@ -291,7 +302,7 @@ export function InstanceExperimentalSettings() {
       setPreviewDialogOpen(true);
     },
     onError: (error) => {
-      setActionError(error instanceof Error ? error.message : "Failed to preview recovery tasks.");
+      setActionError(error instanceof Error ? error.message : t("instanceSettings.previewRecoveryFailed", { defaultValue: "Failed to preview recovery tasks." }));
     },
   });
 
@@ -307,7 +318,7 @@ export function InstanceExperimentalSettings() {
       ]);
     },
     onError: (error) => {
-      setActionError(error instanceof Error ? error.message : "Failed to create recovery tasks.");
+      setActionError(error instanceof Error ? error.message : t("instanceSettings.createRecoveryFailed", { defaultValue: "Failed to create recovery tasks." }));
     },
   });
 
@@ -330,7 +341,7 @@ export function InstanceExperimentalSettings() {
   }, [autoRecoveryManaged]);
 
   if (experimentalQuery.isLoading) {
-    return <div className="text-sm text-muted-foreground">Loading experimental settings...</div>;
+    return <div className="text-sm text-muted-foreground">{t("instanceSettings.loadingExperimental", { defaultValue: "Loading experimental settings..." })}</div>;
   }
 
   if (experimentalQuery.error) {
@@ -338,7 +349,7 @@ export function InstanceExperimentalSettings() {
       <div className="text-sm text-destructive">
         {experimentalQuery.error instanceof Error
           ? experimentalQuery.error.message
-          : "Failed to load experimental settings."}
+          : t("instanceSettings.loadExperimentalFailed", { defaultValue: "Failed to load experimental settings." })}
       </div>
     );
   }
@@ -430,10 +441,10 @@ export function InstanceExperimentalSettings() {
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <FlaskConical className="h-5 w-5 text-muted-foreground" />
-          <h1 className="text-lg font-semibold">Experimental</h1>
+          <h1 className="text-lg font-semibold">{t("common.experimental", { defaultValue: "Experimental" })}</h1>
         </div>
         <p className="text-sm text-muted-foreground">
-          Opt into features that are still being evaluated before they become default behavior.
+          {t("instanceSettings.experimentalDescription", { defaultValue: "Opt into features that are still being evaluated before they become default behavior." })}
         </p>
       </div>
 
@@ -444,10 +455,9 @@ export function InstanceExperimentalSettings() {
         <div className="flex items-start gap-3">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
           <div className="space-y-1 text-sm">
-            <p className="font-medium text-foreground">Experimental features may break at any time.</p>
+            <p className="font-medium text-foreground">{t("instanceSettings.experimentalWarning", { defaultValue: "Experimental features may break at any time." })}</p>
             <p className="text-muted-foreground">
-              These features are opt-in and come with no compatibility guarantees. They may change, break, or be
-              removed without notice. Avoid relying on them for critical or production workflows.
+              {t("instanceSettings.experimentalWarningDescription", { defaultValue: "These features are opt-in and come with no compatibility guarantees. They may change, break, or be removed without notice. Avoid relying on them for critical or production workflows." })}
             </p>
           </div>
         </div>
@@ -518,7 +528,7 @@ export function InstanceExperimentalSettings() {
                 variant="outline"
                 onClick={() => {
                   if (!lookbackHoursIsValid) {
-                    setActionError("Lookback hours must be a whole number from 1 to 720.");
+                    setActionError(t("instanceSettings.lookbackHoursInvalid", { defaultValue: "Lookback hours must be a whole number from 1 to 720." }));
                     return;
                   }
                   toggleMutation.mutate({
@@ -540,7 +550,7 @@ export function InstanceExperimentalSettings() {
               <Button
                 onClick={() => {
                   if (!lookbackHoursIsValid) {
-                    setActionError("Lookback hours must be a whole number from 1 to 720.");
+                    setActionError(t("instanceSettings.lookbackHoursInvalid", { defaultValue: "Lookback hours must be a whole number from 1 to 720." }));
                     return;
                   }
                   runRecoveryMutation.mutate(parsedLookbackHours);

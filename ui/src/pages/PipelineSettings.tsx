@@ -112,6 +112,8 @@ import {
   type BreakdownCopyNames,
 } from "../lib/pipeline-breakdown";
 import { getPipelineStageColumnTone } from "../lib/pipeline-stage-presentation";
+import { useTranslation } from "../i18n";
+import i18n from "../i18n";
 
 type StageSectionKey = "instructions" | "advanced" | "secrets" | "activity" | "history";
 type ApproverKind = "any_human" | "user" | "agent";
@@ -166,28 +168,28 @@ const STAGE_NAV_GROUPS: Array<{
   items: Array<{ id: StageSectionKey; label: string; icon: typeof Circle }>;
 }> = [
   {
-    label: "Stage",
+    label: i18n.t("pipelineSettings.stage"),
     items: [
-      { id: "instructions", label: "Automation", icon: LayoutGrid },
-      { id: "advanced", label: "Advanced", icon: SlidersHorizontal },
-      { id: "secrets", label: "Secrets", icon: KeyRound },
+      { id: "instructions", label: i18n.t("pipelineSettings.automation"), icon: LayoutGrid },
+      { id: "advanced", label: i18n.t("pipelineSettings.advanced"), icon: SlidersHorizontal },
+      { id: "secrets", label: i18n.t("pipelineSettings.secrets"), icon: KeyRound },
     ],
   },
   {
-    label: "Operate",
+    label: i18n.t("pipelineSettings.operate"),
     items: [
-      { id: "activity", label: "Activity", icon: ActivityIcon },
-      { id: "history", label: "History", icon: HistoryIcon },
+      { id: "activity", label: i18n.t("pipelineSettings.activity"), icon: ActivityIcon },
+      { id: "history", label: i18n.t("pipelineSettings.history"), icon: HistoryIcon },
     ],
   },
 ];
 
 const STAGE_SECTION_TITLES: Record<StageSectionKey, string> = {
-  instructions: "Automation",
-  secrets: "Secrets",
-  activity: "Activity",
-  history: "History",
-  advanced: "Advanced",
+  instructions: i18n.t("pipelineSettings.automation"),
+  secrets: i18n.t("pipelineSettings.secrets"),
+  activity: i18n.t("pipelineSettings.activity"),
+  history: i18n.t("pipelineSettings.history"),
+  advanced: i18n.t("pipelineSettings.advanced"),
 };
 
 function parseStageSectionKey(value: string | null): StageSectionKey | null {
@@ -221,26 +223,26 @@ const STAGE_KIND_OPTIONS: Array<{
 }> = [
   {
     value: "working",
-    label: "Working",
-    description: "Items wait here while work happens. An agent or a person moves them forward.",
+    label: i18n.t("pipelineSettings.working"),
+    description: i18n.t("pipelineSettings.workingDescription"),
     icon: Hammer,
   },
   {
     value: "review",
-    label: "Review",
-    description: "Someone has to approve before items leave. Use this when a person or an agent has to say yes or no.",
+    label: i18n.t("pipelineSettings.review"),
+    description: i18n.t("pipelineSettings.reviewDescription"),
     icon: BadgeCheck,
   },
   {
     value: "done",
-    label: "Done",
-    description: "The final step. Items that reach here are finished.",
+    label: i18n.t("pipelineSettings.done"),
+    description: i18n.t("pipelineSettings.doneDescription"),
     icon: CircleCheck,
   },
   {
     value: "cancelled",
-    label: "Cancelled",
-    description: "The dead end. Items that reach here are dropped or rejected.",
+    label: i18n.t("pipelineSettings.cancelled"),
+    description: i18n.t("pipelineSettings.cancelledDescription"),
     icon: Ban,
   },
 ];
@@ -1276,6 +1278,7 @@ export function PipelineSettings() {
   const { pipelineId } = useParams<{ pipelineId: string }>();
   const { selectedCompanyId } = useCompany();
   const { setBreadcrumbs } = useBreadcrumbs();
+  const { t } = useTranslation();
   const { pushToast } = useToastActions();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -2119,11 +2122,11 @@ export function PipelineSettings() {
   };
 
   if (!selectedCompanyId) {
-    return <EmptyState icon={Hexagon} message="Select a company to edit pipeline settings." />;
+    return <EmptyState icon={Hexagon} message={t("pipelines.selectCompany")} />;
   }
 
   if (!pipelineId) {
-    return <EmptyState icon={Hexagon} message="No pipeline selected." />;
+    return <EmptyState icon={Hexagon} message={t("pipelines.noSelected")} />;
   }
 
   if (pipelineQuery.isLoading) {
@@ -2135,7 +2138,7 @@ export function PipelineSettings() {
   }
 
   if (!pipeline) {
-    return <EmptyState icon={Hexagon} message="Pipeline not found." />;
+    return <EmptyState icon={Hexagon} message={t("pipelines.notFound")} />;
   }
 
   const isArchived = Boolean(pipeline.archivedAt);

@@ -1,5 +1,6 @@
 import { Mail, PlusCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { t } from "@/i18n";
 
 /**
  * Welcome / choose-a-path screen (unnumbered). "Set up" advances the flow (the
@@ -12,19 +13,19 @@ export function StartStep({ onSetup }: { onSetup: () => void }) {
   return (
     <div className="flex flex-col items-center gap-9">
       <h1 className="text-center text-4xl font-semibold leading-10 tracking-tight text-foreground">
-        Welcome to Paperclip!
+        {t("onboarding.start.welcome")}
       </h1>
       <div className="flex flex-wrap items-start justify-center gap-6">
         <StartOption
           icon={<PlusCircle className="size-11" strokeWidth={1.2} />}
-          title="Set up Paperclip for your company or team"
-          description="Create a new organization, build your first agent, and assign its first task."
+          title={t("onboarding.start.setupTitle")}
+          description={t("onboarding.start.setupDescription")}
           onClick={onSetup}
         />
         <StartOption
           icon={<Mail className="size-11" strokeWidth={1.2} />}
-          title="Join an existing company or team"
-          description="Have an invite? Enter your team's join code to come aboard."
+          title={t("onboarding.start.joinTitle")}
+          description={t("onboarding.start.joinDescription")}
           onClick={() => {}}
           disabled
         />

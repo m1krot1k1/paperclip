@@ -14,6 +14,7 @@ import { OnboardingCard, OnboardingHeading, Stepper } from "../OnboardingPrimiti
 import { FooterNav } from "../FooterNav";
 import { AgentPreview } from "../AgentPreview";
 import { capsuleHandoffExit, capsuleMotion } from "../onboarding-motion";
+import { t } from "@/i18n";
 
 /** Create-your-first-agent step: role select + optional name, with the capsule. */
 export function AgentStep({
@@ -26,8 +27,8 @@ export function AgentStep({
   loading,
   step,
   total,
-  primaryLabel = "Create",
-  loadingLabel = "Creating...",
+  primaryLabel = t("onboarding.agent.create"),
+  loadingLabel = t("onboarding.agent.creating"),
 }: {
   agentRole: string;
   agentName: string;
@@ -59,18 +60,18 @@ export function AgentStep({
           </motion.div>
           <AgentPreview agentName={agentName} agentRole={agentRole} />
         </div>
-        <OnboardingHeading title="Create your first agent" center />
+        <OnboardingHeading title={t("onboarding.agent.title")} center />
         <div className="mx-auto flex w-full max-w-(--sz-320px) flex-col gap-6">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="onboarding-agent-role">Role</Label>
+            <Label htmlFor="onboarding-agent-role">{t("onboarding.agent.role")}</Label>
             <Select value={agentRole || undefined} onValueChange={onRoleChange}>
               <SelectTrigger id="onboarding-agent-role" className="w-full">
-                <SelectValue placeholder="Select a role…" />
+                <SelectValue placeholder={t("onboarding.agent.rolePlaceholder")} />
               </SelectTrigger>
               <SelectContent>
                 {ROLE_OPTIONS.map((r) => (
                   <SelectItem key={r} value={r}>
-                    {r}
+                    {t(`onboarding.roles.${r === "Chief of Staff" ? "chiefOfStaff" : r === "Chief Technical Officer" ? "chiefTechnicalOfficer" : r === "Head of Marketing" ? "headOfMarketing" : r.toLowerCase()}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -78,11 +79,11 @@ export function AgentStep({
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="onboarding-agent-name">
-              Name <span className="font-normal text-muted-foreground">(optional)</span>
+              {t("onboarding.agent.name")} <span className="font-normal text-muted-foreground">({t("common.optional")})</span>
             </Label>
             <Input
               id="onboarding-agent-name"
-              placeholder="Name"
+              placeholder={t("onboarding.agent.namePlaceholder")}
               value={agentName}
               onChange={(e) => onNameChange(e.target.value)}
             />

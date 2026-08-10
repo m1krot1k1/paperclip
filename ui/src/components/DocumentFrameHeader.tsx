@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AgentIcon } from "./AgentIconPicker";
 import { deriveInitials } from "./Identity";
+import { useTranslation } from "@/i18n";
 
 export type DocumentFrameHeaderRevisionActor = {
   kind: "agent" | "user" | "system";
@@ -86,6 +87,7 @@ export function DocumentFrameHeader({
   titleSlot,
   actionsSlot,
 }: DocumentFrameHeaderProps) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
@@ -94,7 +96,7 @@ export function DocumentFrameHeader({
             type="button"
             className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
             onClick={onToggleFolded}
-            aria-label={folded ? `Expand ${documentKey} document` : `Collapse ${documentKey} document`}
+            aria-label={folded ? t("documents.expand", { key: documentKey }) : t("documents.collapse", { key: documentKey })}
             aria-expanded={!folded}
           >
             {folded ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
@@ -123,14 +125,14 @@ export function DocumentFrameHeader({
                     revisionMenu.historicalPreview && "text-amber-700 hover:text-amber-800 dark:text-amber-300 dark:hover:text-amber-200",
                   )}
                 >
-                  rev {revisionMenu.displayedRevisionNumber}
+                  {t("documents.revision", { number: revisionMenu.displayedRevisionNumber })}
                   <ChevronDown className="h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-72">
-                <DropdownMenuLabel>Revision history</DropdownMenuLabel>
+                <DropdownMenuLabel>{t("documents.revisionHistory")}</DropdownMenuLabel>
                 {revisionMenu.loading && revisionMenu.revisions.length === 0 ? (
-                  <DropdownMenuItem disabled>Loading revisions...</DropdownMenuItem>
+                  <DropdownMenuItem disabled>{t("documents.loadingRevisions")}</DropdownMenuItem>
                 ) : revisionMenu.revisions.length > 0 ? (
                   <DropdownMenuRadioGroup value={revisionMenu.selectedRevisionId ?? revisionMenu.currentRevisionId ?? ""}>
                     {revisionMenu.revisions.map((revision) => {
@@ -144,10 +146,10 @@ export function DocumentFrameHeader({
                         >
                           <div className="flex min-w-0 flex-col">
                             <div className="flex items-center gap-2">
-                              <span className="font-medium">rev {revision.revisionNumber}</span>
+                              <span className="font-medium">{t("documents.revision", { number: revision.revisionNumber })}</span>
                               {isCurrentRevision ? (
                                 <Badge variant="outline" className="border-border px-1.5 text-(length:--text-nano) uppercase tracking-(--tracking-eyebrow) text-muted-foreground">
-                                  Current
+                                  {t("documents.currentVersion")}
                                 </Badge>
                               ) : null}
                             </div>
@@ -163,7 +165,7 @@ export function DocumentFrameHeader({
                     })}
                   </DropdownMenuRadioGroup>
                 ) : (
-                  <DropdownMenuItem disabled>No revisions yet</DropdownMenuItem>
+                  <DropdownMenuItem disabled>{t("documents.noRevisions")}</DropdownMenuItem>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
@@ -173,7 +175,7 @@ export function DocumentFrameHeader({
               href={updatedHref ?? `#document-${encodeURIComponent(documentKey)}`}
               className="truncate text-(length:--text-micro) text-muted-foreground transition-colors hover:text-foreground hover:underline"
             >
-              updated {relativeTime(updatedAt)}
+                {t("documents.updated", { time: relativeTime(updatedAt) })}
             </a>
           ) : null}
           {annotationSlot}

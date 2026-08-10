@@ -15,6 +15,7 @@ import { ProviderStep } from "./steps/ProviderStep";
 import { TaskStep } from "./steps/TaskStep";
 import { CodebaseStep } from "./steps/CodebaseStep";
 import type { OnboardingCodebase } from "@/lib/onboarding-launch";
+import { t } from "@/i18n";
 
 type Step = "start" | "company" | "codebase" | "agent" | "provider" | "task";
 
@@ -113,9 +114,7 @@ export function CloudOnboardingFlow({
   async function handleGetStarted() {
     if (!taskChoice) return;
     if (previewMock) {
-      window.alert(
-        "Preview complete — in the real app this launches the first task and opens your dashboard.",
-      );
+      window.alert(t("onboarding.task.previewComplete"));
       return;
     }
     const result = await flow.launchFirstTask({

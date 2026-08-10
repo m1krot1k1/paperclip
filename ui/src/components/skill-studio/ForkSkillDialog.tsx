@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/i18n";
 
 /**
  * "Edit a copy" confirm dialog for read-only external skills (PAP-13112,
@@ -47,6 +48,7 @@ export function ForkSkillDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const toast = useOptionalToastActions();
@@ -111,11 +113,15 @@ export function ForkSkillDialog({
       const switched = result.reassignments.length;
       toast?.pushToast({
         tone: "success",
-        title: "Editing a copy",
+        title: t("skills.editingCopy"),
         body:
           switched > 0
-            ? `Created a copy of ${skill.name} and switched ${switched} ${switched === 1 ? "agent" : "agents"} to it.`
-            : `Created a copy of ${skill.name}. It's now editable.`,
+            ? t("skills.copyCreatedSwitched", {
+                name: skill.name,
+                count: switched,
+                agentLabel: t(switched === 1 ? "skills.agent" : "skills.agents"),
+              })
+            : t("skills.copyCreated", { name: skill.name }),
       });
       onOpenChange(false);
       navigate(skillStudioRoute(result.skill.id));
@@ -123,8 +129,8 @@ export function ForkSkillDialog({
     onError: (error) => {
       toast?.pushToast({
         tone: "error",
-        title: "Couldn't create a copy",
-        body: error instanceof Error ? error.message : "The fork request failed.",
+        title: t("skills.couldNotCreateCopy"),
+        body: error instanceof Error ? error.message : t("skills.forkFailed"),
       });
     },
   });
@@ -132,8 +138,8 @@ export function ForkSkillDialog({
   const busy = forkMutation.isPending;
   const forkLabel =
     reassign && agentCount > 0
-      ? `Create copy & switch ${agentCount} ${agentCount === 1 ? "agent" : "agents"}`
-      : "Create copy";
+      ? `${t("skills.createCopy")} & ${t("skills.switchAgents").toLowerCase()} ${agentCount} ${t(agentCount === 1 ? "skills.agent" : "skills.agents")}`
+      : t("skills.createCopy");
 
   const openExisting = () => {
     if (!reusableFork) return;
@@ -147,21 +153,18 @@ export function ForkSkillDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <GitFork className="h-4 w-4" />
-            Edit a copy of {skill.name}
+            {t("skills.editCopyTitle", { name: skill.name })}
           </DialogTitle>
           <DialogDescription>
-            {skill.name} is read-only because it comes from an external source.
-            Creating a fully editable copy in your workspace leaves the original
-            untouched and still updatable.
+            {t("skills.externalReadOnly", { name: skill.name })}
           </DialogDescription>
         </DialogHeader>
 
         {reusableFork ? (
           <div className="rounded-md border border-primary/40 bg-primary/5 p-3 text-sm">
-            <p className="font-medium text-foreground">You already have a copy</p>
+            <p className="font-medium text-foreground">{t("skills.alreadyCopy")}</p>
             <p className="mt-0.5 text-muted-foreground">
-              An unedited copy of this skill already exists. Open it instead of
-              making another.
+              {t("skills.alreadyCopyDescription")}
             </p>
             <Button
               type="button"
@@ -170,7 +173,7 @@ export function ForkSkillDialog({
               onClick={openExisting}
               disabled={busy}
             >
-              Open your existing copy
+              {t("skills.openExistingCopy")}
             </Button>
           </div>
         ) : null}
@@ -184,7 +187,7 @@ export function ForkSkillDialog({
         >
           <div className="flex items-center gap-2 text-sm font-medium text-foreground">
             <Users className="h-4 w-4 shrink-0" />
-            <span>{agentUsageSentence(agentCount)}</span>
+            <span>{agentUsageSentence(agentCount, t)}</span>
           </div>
 
           {agentCount > 0 ? (
@@ -202,26 +205,25 @@ export function ForkSkillDialog({
               <label className="mt-3 flex items-start justify-between gap-3">
                 <span className="text-sm">
                   <span className="font-medium text-foreground">
-                    Switch these agents to the copy
+                    {t("skills.switchAgents")}
                   </span>
                   <span className="mt-0.5 block text-xs text-muted-foreground">
                     {reassign
-                      ? "These agents will run your copy instead of the original."
-                      : "These agents keep running the original — your copy won't change what they do."}
+                      ? t("skills.switchAgentsOn")
+                      : t("skills.switchAgentsOff")}
                   </span>
                 </span>
                 <ToggleSwitch
                   checked={reassign}
                   onCheckedChange={setReassign}
                   disabled={busy}
-                  aria-label="Switch these agents to the copy"
+                  aria-label={t("skills.switchAgents")}
                 />
               </label>
             </>
           ) : (
             <p className="mt-1 text-xs text-muted-foreground">
-              Nothing is assigned to it, so your copy won't change any agent's
-              behaviour.
+              {t("skills.nothingAssigned")}
             </p>
           )}
         </div>
@@ -233,7 +235,7 @@ export function ForkSkillDialog({
             onClick={() => onOpenChange(false)}
             disabled={busy}
           >
-            Cancel
+            {t("skills.cancel")}
           </Button>
           <Button
             type="button"
@@ -242,7 +244,7 @@ export function ForkSkillDialog({
             disabled={busy}
           >
             {busy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : null}
-            {reusableFork ? "Create another copy" : forkLabel}
+            {reusableFork ? t("skills.createAnotherCopy") : forkLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

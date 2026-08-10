@@ -2,6 +2,7 @@ import type { SecretStatus, UserSecretCoverageSummary } from "@paperclipai/share
 import { UserRound } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Badge } from "@/components/ui/badge";
+import i18n from "../../i18n";
 
 /**
  * User secrets are visually distinct from company secrets via a violet accent
@@ -61,11 +62,11 @@ export function myValueTone(state: MyValueState): string {
 export function myValueLabel(state: MyValueState): string {
   switch (state) {
     case "set":
-      return "Value set";
+      return i18n.t("userSecret.valueSet");
     case "not_set":
-      return "Not set";
+      return i18n.t("userSecret.notSet");
     case "inactive":
-      return "Disabled";
+      return i18n.t("userSecret.disabled");
   }
 }
 
@@ -76,5 +77,8 @@ export function myValueLabel(state: MyValueState): string {
 export function coverageSummaryLabel(summary: UserSecretCoverageSummary | undefined): string {
   if (!summary) return "—";
   const total = summary.configuredCount + summary.missingCount + summary.inactiveCount;
-  return `${summary.configuredCount} of ${total} set`;
+  return i18n.t("userSecret.membersSet", {
+    configured: summary.configuredCount,
+    total,
+  });
 }

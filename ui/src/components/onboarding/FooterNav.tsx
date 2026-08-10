@@ -1,5 +1,6 @@
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { t } from "@/i18n";
 
 /**
  * Shared footer navigation for onboarding step cards: a ghost pill "Back"
@@ -33,7 +34,7 @@ export function FooterNav({
         disabled={loading}
       >
         <ArrowLeft className="mr-1 size-3.5" />
-        Back
+        {t("common.back")}
       </Button>
       <Button
         size="lg"

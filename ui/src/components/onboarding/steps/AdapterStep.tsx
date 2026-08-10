@@ -16,6 +16,7 @@ import { OnboardingCard, OnboardingHeading, Stepper } from "../OnboardingPrimiti
 import { FooterNav } from "../FooterNav";
 import { AgentPreview } from "../AgentPreview";
 import { capsuleHandoffExit, capsuleHeroMotion } from "../onboarding-motion";
+import { t } from "@/i18n";
 
 const SYSTEM_ADAPTER_TYPES = new Set(["process", "http"]);
 
@@ -78,8 +79,8 @@ export function AdapterStep({
           <AgentPreview agentName={agentName} agentRole={agentRole} />
         </div>
         <OnboardingHeading
-          title="Connect a model"
-          lede="What model would you like your first agent to use? You can choose different models when creating additional agents."
+          title={t("onboarding.adapter.title")}
+          lede={t("onboarding.adapter.description")}
           center
         />
         <div className="grid grid-cols-2 gap-2">
@@ -98,7 +99,7 @@ export function AdapterStep({
                 )}
               >
                 <span className="absolute -top-1.5 right-1.5 rounded-full bg-green-500 px-1.5 py-0.5 text-(length:--text-nano) font-semibold leading-none text-white">
-                  Recommended
+                  {t("onboarding.adapter.recommended")}
                 </span>
                 <opt.icon className="size-4" />
                 <span className="font-medium">{opt.label}</span>
@@ -113,11 +114,11 @@ export function AdapterStep({
         {additional.length > 0 ? (
           <div className="flex flex-col gap-2">
             <span className="text-(length:--text-micro) font-medium uppercase tracking-widest text-muted-foreground">
-              Additional models
+              {t("onboarding.adapter.additional")}
             </span>
             <Select value={additionalValue} onValueChange={onAdapterChange}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Choose another model…" />
+                <SelectValue placeholder={t("onboarding.adapter.chooseAnother")} />
               </SelectTrigger>
               <SelectContent>
                 {additional.map((opt) => (
@@ -132,10 +133,10 @@ export function AdapterStep({
 
         <FooterNav
           onBack={onBack}
-          primaryLabel="Connect now"
+          primaryLabel={t("onboarding.adapter.connect")}
           primaryDisabled={!adapterType}
           loading={loading}
-          loadingLabel="Bringing to life..."
+          loadingLabel={t("onboarding.adapter.loading")}
           onPrimary={onNext}
         />
       </div>
