@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { t } from ".";
 import en from "./locales/en.json";
+import ru from "./locales/ru.json";
 import { localeMessages } from "./locales";
 import {
   validateLocaleMessages,
@@ -17,8 +18,8 @@ describe("locale validation", () => {
   it("accepts registered locale files", () => {
     expect(Object.keys(localeMessages)).toContain("en");
     for (const [locale, messages] of Object.entries(localeMessages)) {
-      // The default locale must be a complete message set.
-      if (locale === "en") {
+      // English and Russian are required complete message sets.
+      if (locale === "en" || locale === "ru") {
         expect(validateLocaleMessages(messages), locale).toEqual([]);
       } else {
         // Non-default locales are optional partial translations: they may
@@ -27,6 +28,10 @@ describe("locale validation", () => {
         expect(validateSafeLocaleMessages(messages), locale).toEqual([]);
       }
     }
+  });
+
+  it("accepts Russian as a complete translation", () => {
+    expect(validateLocaleMessages(ru)).toEqual([]);
   });
 
   it("rejects missing and extra nested keys", () => {

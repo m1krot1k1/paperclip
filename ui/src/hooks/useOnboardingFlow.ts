@@ -27,6 +27,7 @@ import {
   selectDefaultCompanyGoalId,
   selectReusableOnboardingProject,
 } from "@/lib/onboarding-launch";
+import type { OnboardingCodebase } from "@/lib/onboarding-launch";
 import {
   buildOnboardingAdapterConfig,
   type OnboardingAdapterConfigInput,
@@ -360,6 +361,7 @@ export function useOnboardingFlow(initial?: Partial<CreatedOnboardingEntities>) 
   async function launchFirstTask(input?: {
     title?: string;
     description?: string;
+    codebase?: OnboardingCodebase;
   }): Promise<{ companyId: string; companyPrefix: string | null } | null> {
     if (!createdCompanyId || !createdAgentId) {
       setError(
@@ -386,7 +388,7 @@ export function useOnboardingFlow(initial?: Partial<CreatedOnboardingEntities>) 
         } else {
           const project = await projectsApi.create(
             createdCompanyId,
-            buildOnboardingProjectPayload(goalId),
+            buildOnboardingProjectPayload(goalId, input?.codebase),
           );
           projectId = project.id;
           queryClient.invalidateQueries({

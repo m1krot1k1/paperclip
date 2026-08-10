@@ -29,6 +29,18 @@
       "coder": "Coder",
       "designer": "Designer",
       "other": "Other"
+    },
+    "codebase": {
+      "title": "Connect a project",
+      "description": "Choose a local project folder or a GitHub repository for your company workspace.",
+      "localFolder": "Local folder",
+      "gitRepository": "GitHub repository",
+      "pathLabel": "Absolute project path",
+      "pathHint": "The Paperclip server must be able to access this path.",
+      "repoLabel": "Repository URL",
+      "refLabel": "Branch or revision",
+      "privateHint": "Private repositories require a configured GitHub credential. Paperclip never stores credentials in the repository URL.",
+      "invalidRepo": "Use an HTTPS GitHub repository URL without credentials, query parameters, or fragments."
     }
   },
   "bootstrap": {

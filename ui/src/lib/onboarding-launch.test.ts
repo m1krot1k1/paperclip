@@ -124,6 +124,43 @@ describe("onboarding launch payloads", () => {
     });
   });
 
+  it("includes a selected local or GitHub codebase as the primary workspace", () => {
+    expect(
+      buildOnboardingProjectPayload("goal-1", {
+        sourceType: "local_path",
+        cwd: "/Users/alice/project",
+      }),
+    ).toEqual({
+      name: "Onboarding",
+      status: "in_progress",
+      goalIds: ["goal-1"],
+      workspace: {
+        name: "Repository",
+        sourceType: "local_path",
+        cwd: "/Users/alice/project",
+        isPrimary: true,
+      },
+    });
+
+    expect(
+      buildOnboardingProjectPayload(null, {
+        sourceType: "git_repo",
+        repoUrl: "https://github.com/acme/product",
+        repoRef: "main",
+      }),
+    ).toEqual({
+      name: "Onboarding",
+      status: "in_progress",
+      workspace: {
+        name: "Repository",
+        sourceType: "git_repo",
+        repoUrl: "https://github.com/acme/product",
+        repoRef: "main",
+        isPrimary: true,
+      },
+    });
+  });
+
   it("omits goal links when no default company goal exists", () => {
     expect(buildOnboardingProjectPayload(null)).toEqual({
       name: "Onboarding",

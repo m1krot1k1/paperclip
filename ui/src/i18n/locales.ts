@@ -3,6 +3,7 @@ import type { Resource } from "i18next";
 import { assertSafeLocaleMessages, assertValidLocaleMessages } from "./locale-validation";
 
 export const DEFAULT_LOCALE = "en" as const;
+export const requiredCompleteLocales = ["en", "ru"] as const;
 
 const localeModules = import.meta.glob("./locales/*.json", {
   eager: true,
@@ -31,7 +32,7 @@ for (const [locale, messages] of Object.entries(localeMessages)) {
     // mirror the English shape exactly and pass the same injection-safety and
     // length checks. This lets us add a rich Russian translation without
     // forcing ~40 community locales to stay in lock-step.
-    if (locale === DEFAULT_LOCALE) {
+    if (requiredCompleteLocales.includes(locale as (typeof requiredCompleteLocales)[number])) {
       assertValidLocaleMessages(messages);
     } else {
       assertSafeLocaleMessages(messages);

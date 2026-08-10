@@ -13,13 +13,15 @@ import { CompanyStep } from "./steps/CompanyStep";
 import { AgentStep } from "./steps/AgentStep";
 import { ProviderStep } from "./steps/ProviderStep";
 import { TaskStep } from "./steps/TaskStep";
+import { CodebaseStep } from "./steps/CodebaseStep";
+import type { OnboardingCodebase } from "@/lib/onboarding-launch";
 
-type Step = "start" | "company" | "agent" | "provider" | "task";
+type Step = "start" | "company" | "codebase" | "agent" | "provider" | "task";
 
 const DEFAULT_ADAPTER = "openai_compatible";
 
 // Numbered steps drive the Stepper position ("Step N of M").
-const NUMBERED: Step[] = ["company", "agent", "provider", "task"];
+const NUMBERED: Step[] = ["company", "codebase", "agent", "provider", "task"];
 function stepper(s: Step) {
   return { step: NUMBERED.indexOf(s) + 1, total: NUMBERED.length };
 }
@@ -59,6 +61,7 @@ export function CloudOnboardingFlow({
   const [step, setStep] = useState<Step>(initialStep);
   const [companyName, setCompanyName] = useState("");
   const [mission, setMission] = useState("");
+  const [codebase, setCodebase] = useState<OnboardingCodebase | null>(null);
   const [agentRole, setAgentRole] = useState("");
   const [agentName, setAgentName] = useState("");
   const [model, setModel] = useState("gpt-4o");
@@ -74,11 +77,11 @@ export function CloudOnboardingFlow({
 
   async function handleCreateCompany() {
     if (previewMock) {
-      setStep("agent");
+      setStep("codebase");
       return;
     }
     const result = await flow.createCompanyAndGoal({ companyName, companyGoal: mission });
-    if (result) setStep("agent");
+    if (result) setStep("codebase");
   }
 
   async function handleCreateAgent() {
@@ -115,7 +118,10 @@ export function CloudOnboardingFlow({
       );
       return;
     }
-    const result = await flow.launchFirstTask(firstTaskPayload(taskChoice, customTask));
+    const result = await flow.launchFirstTask({
+      ...firstTaskPayload(taskChoice, customTask),
+      codebase: codebase ?? undefined,
+    });
     if (result) {
       onClose?.();
       navigate(result.companyPrefix ? `/${result.companyPrefix}/dashboard` : "/dashboard");
@@ -134,6 +140,16 @@ export function CloudOnboardingFlow({
           onMissionChange={setMission}
           onBack={() => setStep("start")}
           onNext={handleCreateCompany}
+          loading={flow.loading}
+        />
+      )}
+      {step === "codebase" && (
+        <CodebaseStep
+          {...stepper("codebase")}
+          codebase={codebase ?? { sourceType: "local_path", cwd: "" }}
+          onCodebaseChange={setCodebase}
+          onBack={() => setStep("company")}
+          onNext={() => setStep("agent")}
           loading={flow.loading}
         />
       )}

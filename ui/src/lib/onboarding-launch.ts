@@ -1,6 +1,9 @@
 import type { Goal, Project } from "@paperclipai/shared";
 
 export const ONBOARDING_PROJECT_NAME = "Onboarding";
+export type OnboardingCodebase =
+  | { sourceType: "local_path"; cwd: string }
+  | { sourceType: "git_repo"; repoUrl: string; repoRef?: string };
 
 function goalCreatedAt(goal: Goal) {
   const createdAt = goal.createdAt instanceof Date ? goal.createdAt : new Date(goal.createdAt);
@@ -24,11 +27,23 @@ export function selectDefaultCompanyGoalId(goals: Goal[]): string | null {
   );
 }
 
-export function buildOnboardingProjectPayload(goalId: string | null) {
+export function buildOnboardingProjectPayload(
+  goalId: string | null,
+  workspace?: OnboardingCodebase,
+) {
   return {
     name: ONBOARDING_PROJECT_NAME,
     status: "in_progress" as const,
     ...(goalId ? { goalIds: [goalId] } : {}),
+    ...(workspace
+      ? {
+          workspace: {
+            name: "Repository",
+            ...workspace,
+            isPrimary: true,
+          },
+        }
+      : {}),
   };
 }
 
