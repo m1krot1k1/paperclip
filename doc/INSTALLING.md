@@ -35,15 +35,20 @@ served from the same origin as the script and is not an independent
 authenticity proof. For an independently hosted source, download a release-tag
 or commit-pinned copy from GitHub, review it, and run that local file.
 
-Use `--no-prompt` for automation and `--no-onboard` to stop after installing.
+Use `--no-prompt` for automation. For a server installation, keep onboarding
+enabled and pass the desired bind mode and service installation explicitly:
 The piped form only proceeds when supported Node.js, npm, and npx are already
 installed; if Node.js bootstrap is required, download the script first so the
 privileged commands are inspectable before execution:
 
 ```sh
-curl -fsSL https://paperclip.ing/install.sh | bash -s -- --no-prompt --no-onboard
-paperclipai onboard --yes
+curl -fsSL "https://raw.githubusercontent.com/m1krot1k1/paperclip/main/scripts/install.sh?$(date +%s)" \
+  | bash -s -- --no-prompt paperclipai onboard --yes --bind lan --install-service
 ```
+
+This configures `0.0.0.0`, installs and starts the background service, and
+enables autostart. The host firewall and any cloud security group must allow
+the configured Paperclip port for LAN or external access.
 
 If the vanity installer endpoint is unavailable, fetch the same
 release-controlled source from GitHub raw content:

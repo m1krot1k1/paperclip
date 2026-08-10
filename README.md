@@ -318,14 +318,19 @@ macOS systems. The checksum detects transfer or publishing mistakes, but it is
 served from the same origin as the script; use a release-tag or commit-pinned
 GitHub copy when you need an independently hosted source.
 
-For a non-interactive managed install:
+For a non-interactive server/LAN install with automatic onboarding, service
+installation, autostart, and binding on all interfaces:
 
 ```bash
-curl -fsSL https://paperclip.ing/install.sh | bash -s -- --no-prompt --no-onboard
-paperclipai onboard --yes
+curl -fsSL "https://raw.githubusercontent.com/m1krot1k1/paperclip/main/scripts/install.sh?$(date +%s)" \
+  | bash -s -- --no-prompt paperclipai onboard --yes --bind lan --install-service
 ```
 
-The piped form requires supported Node.js, npm, and npx to already be present.
+The `--bind lan` option listens on `0.0.0.0`, making the server reachable from
+the local network and, when the firewall allows it, from external networks.
+The `--install-service` option installs and starts the background service and
+enables autostart. The piped form requires supported Node.js, npm, and npx to
+already be present.
 If Node.js bootstrap is required, download and review `install.sh` before
 running it so no privileged dependency-install command is accepted through a
 pipe.

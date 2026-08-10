@@ -22,6 +22,7 @@ REPO=""
 NO_ONBOARD=0
 NO_PROMPT=0
 INSTALL_SERVICE=0
+ONBOARD_ARGS=()
 DRY_RUN=0
 VERBOSE=0
 TEMP_DIR=""
@@ -142,12 +143,16 @@ while [ "$#" -gt 0 ]; do
       usage
       exit 0
       ;;
-    paperclipai|onboard)
-      # Keep compatibility with the upstream invocation:
-      # `bash -s -- <flags> paperclipai onboard --yes`.
-      while [ "$#" -gt 0 ]; do
-        shift
-      done
+    paperclipai)
+      shift
+      [ "${1:-}" = "onboard" ] && shift
+      ONBOARD_ARGS=("$@")
+      set --
+      break
+      ;;
+    onboard)
+      ONBOARD_ARGS=("$@")
+      set --
       break
       ;;
     --)
@@ -159,13 +164,6 @@ while [ "$#" -gt 0 ]; do
       ;;
   esac
 done
-
-# Any tokens after `--` are tolerated for compatibility with the upstream
-# invocations (`... | bash -s -- <flags> paperclipai onboard --yes`). They are
-# redundant here because this script drives the git-ref install itself.
-# shellcheck disable=SC2034
-for _ignore in "$@"; do :; done
-unset _ignore
 
 if [ "$CANARY" = "1" ] && [ -n "$VERSION" ]; then
   fail "--canary and --version cannot be used together"
@@ -522,7 +520,18 @@ if [ "$NO_ONBOARD" = "0" ] && [ -t 0 ] && [ -t 1 ]; then
 fi
 
 if [ "$NO_ONBOARD" = "0" ]; then
-  log "Installation complete. Next: paperclipai onboard"
+  if [ "${#ONBOARD_ARGS[@]}" -gt 0 ]; then
+    log "Running Paperclip onboarding"
+    if [ "$INSTALL_SOURCE" = "npm" ]; then
+      print_command "${NPM_ENV[@]}" npx --yes "--registry=$PUBLIC_NPM_REGISTRY" "$PACKAGE_SPEC" onboard "${ONBOARD_ARGS[@]}"
+      "${NPM_ENV[@]}" npx --yes "--registry=$PUBLIC_NPM_REGISTRY" "$PACKAGE_SPEC" onboard "${ONBOARD_ARGS[@]}"
+    else
+      print_command node "$CLI_ENTRY" onboard "${ONBOARD_ARGS[@]}"
+      run_built_cli "$CLI_ENTRY" onboard "${ONBOARD_ARGS[@]}"
+    fi
+  else
+    log "Installation complete. Next: paperclipai onboard"
+  fi
 else
   log "Installation complete."
 fi
