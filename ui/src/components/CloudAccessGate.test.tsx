@@ -1,5 +1,9 @@
+// @vitest-environment jsdom
+
 import type { ReactNode } from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { flushSync } from "react-dom";
 import { describe, expect, it, vi } from "vitest";
 import { CloudAccessGate } from "./CloudAccessGate";
 
@@ -69,9 +73,17 @@ vi.mock("@/components/ui/card", () => ({
 
 describe("CloudAccessGate", () => {
   it("opens startup onboarding for a companyless instance admin", async () => {
-    render(<CloudAccessGate />);
+    const container = document.createElement("div");
+    const root: Root = createRoot(container);
+    document.body.appendChild(container);
 
-    await waitFor(() => expect(openOnboarding).toHaveBeenCalledTimes(1));
-    expect(screen.getByTestId("outlet")).toBeInTheDocument();
+    await act(async () => {
+      root.render(<CloudAccessGate />);
+    });
+
+    expect(openOnboarding).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('[data-testid="outlet"]')).not.toBeNull();
+    flushSync(() => root.unmount());
+    container.remove();
   });
 });
