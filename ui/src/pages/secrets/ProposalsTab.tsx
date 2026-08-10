@@ -27,7 +27,7 @@ import {
   bindingSecretLabel,
   useProposalReview,
 } from "./proposal-review";
-import i18n from "../../i18n";
+import { i18n } from "../../i18n";
 
 /** ISO expiry → "expires in 12d" / "expires in 5h" / "expired". */
 function expiryLabel(expiresAt: string): { text: string; urgent: boolean } {

@@ -113,7 +113,7 @@ import {
 } from "../lib/pipeline-breakdown";
 import { getPipelineStageColumnTone } from "../lib/pipeline-stage-presentation";
 import { useTranslation } from "../i18n";
-import i18n from "../i18n";
+import { i18n } from "../i18n";
 
 type StageSectionKey = "instructions" | "advanced" | "secrets" | "activity" | "history";
 type ApproverKind = "any_human" | "user" | "agent";

@@ -128,7 +128,7 @@ import { applyLocalQueuedIssueCommentState, isQueuedIssueComment } from "../lib/
 import type { IssueChatComment } from "../lib/issue-chat-messages";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "../i18n";
-import i18n from "../i18n";
+import { i18n } from "../i18n";
 
 type PipelineConversationActionableInteraction =
   | SuggestTasksInteraction
