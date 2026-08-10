@@ -14,7 +14,7 @@ import { OnboardingCard, OnboardingHeading, Stepper } from "../OnboardingPrimiti
 import { FooterNav } from "../FooterNav";
 import { AgentPreview } from "../AgentPreview";
 import { capsuleHandoffExit, capsuleMotion } from "../onboarding-motion";
-import { t } from "@/i18n";
+import { useTranslation } from "@/i18n";
 
 /** Create-your-first-agent step: role select + optional name, with the capsule. */
 export function AgentStep({
@@ -27,8 +27,8 @@ export function AgentStep({
   loading,
   step,
   total,
-  primaryLabel = t("onboarding.agent.create"),
-  loadingLabel = t("onboarding.agent.creating"),
+  primaryLabel,
+  loadingLabel,
 }: {
   agentRole: string;
   agentName: string;
@@ -43,6 +43,9 @@ export function AgentStep({
   primaryLabel?: string;
   loadingLabel?: string;
 }) {
+  const { t } = useTranslation();
+  const resolvedPrimaryLabel = primaryLabel ?? t("onboarding.agent.create");
+  const resolvedLoadingLabel = loadingLabel ?? t("onboarding.agent.creating");
   const previewVisible = Boolean(agentName || agentRole);
   return (
     <OnboardingCard>
@@ -91,10 +94,10 @@ export function AgentStep({
         </div>
         <FooterNav
           onBack={onBack}
-          primaryLabel={primaryLabel}
+          primaryLabel={resolvedPrimaryLabel}
           primaryDisabled={!agentRole.trim()}
           loading={loading}
-          loadingLabel={loadingLabel}
+          loadingLabel={resolvedLoadingLabel}
           onPrimary={onNext}
         />
       </div>

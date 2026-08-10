@@ -51,6 +51,10 @@ function nonEmpty(value: unknown): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
 
+function isUnsupportedToolCallOutput(value: string): boolean {
+  return /<\|tool_(?:calls?_section|call)_(?:begin|end)\|>|\bfunctions\.[A-Za-z0-9_]+:/i.test(value);
+}
+
 function normalizeBaseUrl(value: string): string {
   const normalized = value.trim().replace(/\/+$/, "");
   return normalized.replace(/\/chat\/completions$/i, "");
@@ -95,8 +99,9 @@ function buildContextMessage(ctx: AdapterExecutionContext): string {
     taskId
       ? `Assigned task/issue: ${taskId}`
       : "No specific issue is assigned; pick work from the company queue.",
-    "Use curl (available in your environment) to call the Paperclip API and report progress or completion.",
-    "Use HTTP requests with Authorization: Bearer $PAPERCLIP_API_KEY when the environment provides it, and X-Paperclip-Run-Id on mutating calls.",
+    "This adapter is text-only: it does not provide shell, curl, HTTP, filesystem, or other executable tools.",
+    "Do not emit tool-call markup, pseudo tool calls, or claim that you fetched data or changed Paperclip state.",
+    "Return a concise plain-text answer based only on the context supplied in this message. Paperclip will record your answer, but you cannot update issue state from this adapter.",
   ];
   if (wakePrompt) pieces.push("", wakePrompt);
   if (wakePayloadJson) pieces.push("", "Structured wake payload:", wakePayloadJson);
@@ -181,6 +186,18 @@ async function requestCompletion(args: {
 
       const tokens = usage ? `${usage.inputTokens}+${usage.outputTokens}` : "unknown";
       await onStderr(`[openai-compatible] completion model=${returnedModel ?? model} tokens=${tokens}`);
+
+      if (content && isUnsupportedToolCallOutput(content)) {
+        return {
+          content: "",
+          model: returnedModel,
+          usage,
+          timedOut: false,
+          failureMessage:
+            "The model returned a tool call, but openai_compatible is text-only and cannot execute tools. " +
+            "Use a tool-enabled local adapter such as claude_local or codex_local for API and workspace operations.",
+        };
+      }
 
       return {
         content,
