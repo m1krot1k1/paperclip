@@ -458,6 +458,23 @@ run_built_cli() {
   node "$cli_entry" "$@"
 }
 
+prepare_lan_allowed_hosts() {
+  [ "${PAPERCLIP_ALLOWED_HOSTNAMES:-}" ] && return 0
+  local hosts=""
+  local candidate
+  for candidate in "$(hostname 2>/dev/null || true)" "$(hostname -f 2>/dev/null || true)" $(hostname -I 2>/dev/null || true); do
+    candidate="${candidate,,}"
+    case "$candidate" in
+      ""|localhost|localhost.localdomain|127.*|::1) continue ;;
+    esac
+    case ",$hosts," in
+      *,"$candidate",*) ;;
+      *) hosts="${hosts:+$hosts,}$candidate" ;;
+    esac
+  done
+  [ -n "$hosts" ] && export PAPERCLIP_ALLOWED_HOSTNAMES="$hosts"
+}
+
 if [ "$INSTALL_SOURCE" = "npm" ]; then
   PACKAGE_SPEC="paperclipai@latest"
   if [ "$CANARY" = "1" ]; then
@@ -525,6 +542,9 @@ fi
 
 if [ "$NO_ONBOARD" = "0" ]; then
   if [ "${#ONBOARD_ARGS[@]}" -gt 0 ]; then
+    case " ${ONBOARD_ARGS[*]} " in
+      *" --bind lan "*|*" --bind lan") prepare_lan_allowed_hosts ;;
+    esac
     log "Running Paperclip onboarding"
     if [ "$INSTALL_SOURCE" = "npm" ]; then
       print_command "${NPM_ENV[@]}" npx --yes "--registry=$PUBLIC_NPM_REGISTRY" "$PACKAGE_SPEC" onboard "${ONBOARD_ARGS[@]}"
