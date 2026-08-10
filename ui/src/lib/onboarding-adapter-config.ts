@@ -15,6 +15,7 @@ export interface OnboardingAdapterConfigInput {
   command: string;
   args: string;
   url: string;
+  authToken?: string;
   /**
    * When true and the adapter is claude_local, force ANTHROPIC_API_KEY to an
    * empty plain value so a subscription login is used instead of a stray env
@@ -26,7 +27,7 @@ export interface OnboardingAdapterConfigInput {
 export function buildOnboardingAdapterConfig(
   input: OnboardingAdapterConfigInput,
 ): Record<string, unknown> {
-  const { adapterType, model, command, args, url, forceUnsetAnthropicApiKey } = input;
+  const { adapterType, model, command, args, url, authToken, forceUnsetAnthropicApiKey } = input;
   const adapter = getUIAdapter(adapterType);
   const config = adapter.buildAdapterConfig({
     ...defaultCreateValues,
@@ -42,6 +43,7 @@ export function buildOnboardingAdapterConfig(
     command,
     args,
     url,
+    authToken,
     dangerouslySkipPermissions:
       adapterType === "claude_local" || adapterType === "opencode_local",
     dangerouslyBypassSandbox:

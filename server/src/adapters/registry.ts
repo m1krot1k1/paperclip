@@ -440,6 +440,30 @@ const openAICompatibleAdapter: ServerAdapterModule = {
   supportsInstructionsBundle: false,
   requiresMaterializedRuntimeSkills: false,
   agentConfigurationDoc: openAICompatibleAgentConfigurationDoc,
+  getConfigSchema: () => ({
+    fields: [
+      {
+        key: "baseUrl",
+        label: "Base URL",
+        type: "text",
+        required: true,
+        default: "https://api.openai.com/v1",
+      },
+      {
+        key: "apiKey",
+        label: "API key",
+        type: "text",
+        meta: { secret: true },
+      },
+      {
+        key: "model",
+        label: "Model",
+        type: "text",
+        required: true,
+        default: "gpt-4o",
+      },
+    ],
+  }),
 };
 
 const adaptersByType = new Map<string, ServerAdapterModule>();

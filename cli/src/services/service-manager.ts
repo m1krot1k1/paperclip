@@ -98,6 +98,7 @@ ExecStart="${escapeSystemd(input.shimPath)}" run --instance "${escapeSystemd(inp
 Environment="PAPERCLIP_SERVICE_MANAGED=1"
 Environment="PAPERCLIP_INSTANCE_ID=${escapeSystemd(input.instanceId)}"
 Environment="PAPERCLIP_HOME=${escapeSystemd(input.homeDir)}"
+Environment="PATH=%h/.local/bin:%h/.npm-global/bin:/usr/local/bin:/usr/bin:/bin"
 WorkingDirectory=%h
 Restart=always
 RestartSec=5

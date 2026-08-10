@@ -32,6 +32,7 @@ describe("service definition generation", () => {
     expect(unit).toContain("Type=notify");
     expect(unit).toContain("NotifyAccess=all");
     expect(unit).toContain("ExecStartPre=/bin/sh -c");
+    expect(unit).toContain('Environment="PATH=%h/.local/bin:%h/.npm-global/bin:/usr/local/bin:/usr/bin:/bin"');
     expect(unit).toContain('ExecStart="/home/alice/.local/bin/paperclipai" run --instance "team-a"');
     expect(unit).toContain("Restart=always");
     expect(unit).toContain("TimeoutStopSec=300");

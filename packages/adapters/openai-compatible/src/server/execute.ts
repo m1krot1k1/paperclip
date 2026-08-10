@@ -52,7 +52,8 @@ function nonEmpty(value: unknown): string | null {
 }
 
 function normalizeBaseUrl(value: string): string {
-  return value.replace(/\/+$/, "");
+  const normalized = value.trim().replace(/\/+$/, "");
+  return normalized.replace(/\/chat\/completions$/i, "");
 }
 
 function toChatMessage(entry: unknown): ChatMessage | null {
@@ -162,7 +163,13 @@ async function requestCompletion(args: {
 
       const parsed = parseJson(rawBody);
       if (!parsed) {
-        return { content: "", model: null, usage: undefined, timedOut: false, failureMessage: null };
+        return {
+          content: "",
+          model: null,
+          usage: undefined,
+          timedOut: false,
+          failureMessage: "Provider returned an invalid JSON response.",
+        };
       }
 
       const choices = Array.isArray(parsed.choices) ? parsed.choices : [];
@@ -175,7 +182,13 @@ async function requestCompletion(args: {
       const tokens = usage ? `${usage.inputTokens}+${usage.outputTokens}` : "unknown";
       await onStderr(`[openai-compatible] completion model=${returnedModel ?? model} tokens=${tokens}`);
 
-      return { content, model: returnedModel, usage, timedOut: false, failureMessage: null };
+      return {
+        content,
+        model: returnedModel,
+        usage,
+        timedOut: false,
+        failureMessage: content ? null : "Provider returned no assistant content.",
+      };
     } catch (err) {
       const timedOut = err instanceof Error && err.name === "AbortError";
       lastError =
@@ -204,6 +217,10 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   const baseUrl = normalizeBaseUrl(asString(config.baseUrl, DEFAULT_OPENAI_COMPATIBLE_BASE_URL));
   const apiKey = nonEmpty(config.apiKey) ?? nonEmpty(config.token);
   const headers = asStringRecord(config.headers);
+  const authorizationHeader = Object.keys(headers).find((key) => key.toLowerCase() === "authorization");
+  if (apiKey && authorizationHeader) {
+    delete headers[authorizationHeader];
+  }
   const model = asString(config.model, DEFAULT_OPENAI_COMPATIBLE_MODEL).trim() || DEFAULT_OPENAI_COMPATIBLE_MODEL;
   const timeoutSec = asNumber(config.timeoutSec, 300);
   const maxRetries = asNumber(config.maxRetries, 2);

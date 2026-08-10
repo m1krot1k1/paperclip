@@ -4,7 +4,35 @@
       "title": "Создайте свою первую компанию",
       "description": "Начните с создания компании.",
       "newCompany": "Новая компания"
+    },
+    "loadStateFailed": "Не удалось загрузить состояние приложения"
+  },
+  "onboarding": {
+    "stepper": "Шаг {{step}} из {{total}}",
+    "provider": {
+      "title": "Настройте LLM",
+      "description": "Выберите OpenAI-compatible провайдера для CEO. Ключ будет сохранён в защищённом хранилище Paperclip.",
+      "provider": "Провайдер",
+      "model": "Модель",
+      "baseUrl": "Base URL",
+      "apiKey": "API key",
+      "localKeyHint": "необязательно для локальных серверов",
+      "invalidUrl": "Укажите корректный http(s)-адрес без /chat/completions.",
+      "createCeo": "Создать CEO",
+      "connecting": "Подключение…"
+    },
+    "roles": {
+      "chiefOfStaff": "Руководитель аппарата",
+      "chiefTechnicalOfficer": "Технический директор",
+      "headOfMarketing": "Руководитель маркетинга",
+      "researcher": "Исследователь",
+      "coder": "Разработчик",
+      "designer": "Дизайнер",
+      "other": "Другое"
     }
+  },
+  "bootstrap": {
+    "loadFailed": "Не удалось загрузить состояние приложения"
   },
   "common": {
     "cancel": "Отмена",

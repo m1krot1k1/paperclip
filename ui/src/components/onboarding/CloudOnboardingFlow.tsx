@@ -11,14 +11,15 @@ import { OnboardingScaffold } from "./OnboardingScaffold";
 import { StartStep } from "./steps/StartStep";
 import { CompanyStep } from "./steps/CompanyStep";
 import { AgentStep } from "./steps/AgentStep";
+import { ProviderStep } from "./steps/ProviderStep";
 import { TaskStep } from "./steps/TaskStep";
 
-type Step = "start" | "company" | "agent" | "task";
+type Step = "start" | "company" | "agent" | "provider" | "task";
 
-const DEFAULT_ADAPTER = "claude_local";
+const DEFAULT_ADAPTER = "openai_compatible";
 
 // Numbered steps drive the Stepper position ("Step N of M").
-const NUMBERED: Step[] = ["company", "agent", "task"];
+const NUMBERED: Step[] = ["company", "agent", "provider", "task"];
 function stepper(s: Step) {
   return { step: NUMBERED.indexOf(s) + 1, total: NUMBERED.length };
 }
@@ -60,6 +61,9 @@ export function CloudOnboardingFlow({
   const [mission, setMission] = useState("");
   const [agentRole, setAgentRole] = useState("");
   const [agentName, setAgentName] = useState("");
+  const [model, setModel] = useState("gpt-4o");
+  const [baseUrl, setBaseUrl] = useState("https://api.openai.com/v1");
+  const [apiKey, setApiKey] = useState("");
   const [taskChoice, setTaskChoice] = useState<FirstTaskChoice | null>(null);
   const [customTask, setCustomTask] = useState("");
 
@@ -84,7 +88,7 @@ export function CloudOnboardingFlow({
     }
     const result = await flow.hireLeadAgent({
       agentName: agentName || agentRole,
-      adapter: { adapterType: DEFAULT_ADAPTER, model: "", command: "", args: "", url: "" },
+      adapter: { adapterType: DEFAULT_ADAPTER, model, command: "", args: "", url: baseUrl, authToken: apiKey },
       instructions: {
         companyName,
         companyGoal: mission,
@@ -141,6 +145,20 @@ export function CloudOnboardingFlow({
           onRoleChange={handleRoleChange}
           onNameChange={setAgentName}
           onBack={existingCompany ? () => onClose?.() : () => setStep("company")}
+          onNext={() => setStep("provider")}
+          loading={flow.loading}
+        />
+      )}
+      {step === "provider" && (
+        <ProviderStep
+          {...stepper("provider")}
+          model={model}
+          baseUrl={baseUrl}
+          apiKey={apiKey}
+          onModelChange={setModel}
+          onBaseUrlChange={setBaseUrl}
+          onApiKeyChange={setApiKey}
+          onBack={() => setStep("agent")}
           onNext={handleCreateAgent}
           loading={flow.loading}
         />
@@ -154,7 +172,7 @@ export function CloudOnboardingFlow({
           onSelectChoice={setTaskChoice}
           customTask={customTask}
           onCustomTaskChange={setCustomTask}
-          onBack={() => setStep("agent")}
+          onBack={() => setStep("provider")}
           onGetStarted={handleGetStarted}
           loading={flow.loading}
           error={flow.error}

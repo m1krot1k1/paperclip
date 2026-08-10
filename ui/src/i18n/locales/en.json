@@ -4,7 +4,35 @@
       "title": "Create your first company",
       "description": "Get started by creating a company.",
       "newCompany": "New Company"
+    },
+    "loadStateFailed": "Failed to load app state"
+  },
+  "onboarding": {
+    "stepper": "Step {{step}} of {{total}}",
+    "provider": {
+      "title": "Configure your LLM",
+      "description": "Choose an OpenAI-compatible provider for your CEO. Your key is stored securely by Paperclip.",
+      "provider": "Provider",
+      "model": "Model",
+      "baseUrl": "Base URL",
+      "apiKey": "API key",
+      "localKeyHint": "optional for local servers",
+      "invalidUrl": "Enter a valid http(s) URL without /chat/completions.",
+      "createCeo": "Create CEO",
+      "connecting": "Connecting…"
+    },
+    "roles": {
+      "chiefOfStaff": "Chief of Staff",
+      "chiefTechnicalOfficer": "Chief Technical Officer",
+      "headOfMarketing": "Head of Marketing",
+      "researcher": "Researcher",
+      "coder": "Coder",
+      "designer": "Designer",
+      "other": "Other"
     }
+  },
+  "bootstrap": {
+    "loadFailed": "Failed to load app state"
   },
   "common": {
     "cancel": "Cancel",
