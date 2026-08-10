@@ -196,6 +196,15 @@
     "collapseSidebar": "Свернуть боковую панель",
     "agents": "Агенты"
   },
+  "issues": {
+    "selectCompany": "Выберите компанию, чтобы просмотреть задачи.",
+    "columns": {
+      "title": "Столбцы",
+      "desktopRows": "Строки задач на компьютере",
+      "resetDefaults": "Сбросить по умолчанию",
+      "defaultSummary": "статус, id, обновление"
+    }
+  },
   "inbox": {
     "selectCompany": "Выберите компанию, чтобы просмотреть входящие.",
     "searchPlaceholder": "Поиск во входящих…",

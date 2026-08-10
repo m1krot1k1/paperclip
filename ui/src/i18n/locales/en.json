@@ -196,6 +196,15 @@
     "collapseSidebar": "Collapse sidebar",
     "agents": "Agents"
   },
+  "issues": {
+    "selectCompany": "Select a company to view tasks.",
+    "columns": {
+      "title": "Columns",
+      "desktopRows": "Desktop task rows",
+      "resetDefaults": "Reset defaults",
+      "defaultSummary": "status, id, updated"
+    }
+  },
   "inbox": {
     "selectCompany": "Select a company to view inbox.",
     "searchPlaceholder": "Search inbox…",
