@@ -93,7 +93,7 @@ StartLimitBurst=5
 [Service]
 Type=notify
 NotifyAccess=all
-ExecStartPre=/bin/sh -c 'for binary in "%h"/.paperclip/cli/current/node_modules/@embedded-postgres/*/native/bin/*; do [ -f "$binary" ] && chmod u+x "$binary"; done'
+ExecStartPre=/bin/sh -c 'chmod a+rx "%h"/.paperclip "%h"/.paperclip/cli "%h"/.paperclip/cli/current "%h"/.paperclip/cli/current/node_modules "%h"/.paperclip/cli/current/node_modules/@embedded-postgres 2>/dev/null || true; for native in "%h"/.paperclip/cli/current/node_modules/@embedded-postgres/*/native; do [ -d "$native" ] && chmod a+rx "$native" "$native/bin" 2>/dev/null || true; done; for binary in "%h"/.paperclip/cli/current/node_modules/@embedded-postgres/*/native/bin/*; do [ -f "$binary" ] && chmod a+rx "$binary" 2>/dev/null || true; done'
 ExecStart="${escapeSystemd(input.shimPath)}" run --instance "${escapeSystemd(input.instanceId)}"
 Environment="PAPERCLIP_SERVICE_MANAGED=1"
 Environment="PAPERCLIP_INSTANCE_ID=${escapeSystemd(input.instanceId)}"
