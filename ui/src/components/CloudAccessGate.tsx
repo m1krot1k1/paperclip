@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Navigate, Outlet, useLocation } from "@/lib/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { accessApi } from "@/api/access";
@@ -8,6 +9,7 @@ import { queryKeys } from "@/lib/queryKeys";
 import { BootstrapPendingPage } from "@/components/BootstrapPendingPage";
 import { PaperclipLoading } from "@/components/AnimatedPaperclipIcon";
 import { Card } from "@/components/ui/card";
+import { useDialogActions } from "@/context/DialogContext";
 
 function NoBoardAccessPage() {
   return (
@@ -29,6 +31,8 @@ function NoBoardAccessPage() {
 export function CloudAccessGate() {
   const location = useLocation();
   const queryClient = useQueryClient();
+  const { openOnboarding } = useDialogActions();
+  const firstRunOpenedRef = useRef(false);
   const healthQuery = useQuery({
     queryKey: queryKeys.health,
     queryFn: () => healthApi.get(),
@@ -69,6 +73,19 @@ export function CloudAccessGate() {
       await queryClient.invalidateQueries({ queryKey: queryKeys.access.currentBoardAccess });
     },
   });
+
+  const isCompanylessInstanceAdmin =
+    isAuthenticatedMode &&
+    !!sessionQuery.data &&
+    boardAccessQuery.data?.isInstanceAdmin === true &&
+    boardAccessQuery.data.companyIds.length === 0;
+
+  useEffect(() => {
+    if (isCompanylessInstanceAdmin && !firstRunOpenedRef.current) {
+      firstRunOpenedRef.current = true;
+      openOnboarding();
+    }
+  }, [isCompanylessInstanceAdmin, openOnboarding]);
 
   if (
     healthQuery.isLoading ||
