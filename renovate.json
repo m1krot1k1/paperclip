@@ -1,0 +1,41 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    "group:monorepos"
+  ],
+  "platform": "github",
+  "dependencyDashboard": true,
+  "rebaseWhen": "behind-base-branch",
+  "prConcurrentLimit": 10,
+  "prHourlyLimit": 2,
+  "rangeStrategy": "bump",
+  "packageRules": [
+    {
+      "description": "Group safe patch updates",
+      "matchUpdateTypes": ["patch"],
+      "groupName": "all patch dependencies",
+      "automerge": true,
+      "platformAutomerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "description": "Review minor updates manually",
+      "matchUpdateTypes": ["minor"],
+      "automerge": false
+    },
+    {
+      "description": "Review major updates manually",
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "Keep Paperclip workspace packages together",
+      "matchPackageNames": ["/^@paperclipai\\//"],
+      "groupName": "Paperclip workspace packages",
+      "automerge": false,
+      "dependencyDashboardApproval": true
+    }
+  ]
+}
